@@ -14,7 +14,7 @@ from py_wikiracer.wikiracer import Parser, BFSProblem, DFSProblem, DijkstrasProb
 
 REQ_LIMIT = 75 # per test, normally
 
-@unittest.skip('skipped test')
+# @unittest.skip('skipped test')
 def test_parser():
     internet = Internet()
     html = internet.get_page("/wiki/Henry_Krumrey")
