@@ -187,13 +187,17 @@ class DijkstrasProblem:
     def _dijkstras(self, source, goal, cost_function):
         if source == goal:  # if source and goal are the same return
             return None
-        PQ = []
+        # PQ = []
+        pq = PriorityQueue()
         prev = defaultdict(list)  # store the previous nodes in the path
         discovered = {source}  # label root as visited
-        heapq.heappush(PQ, (cost_function(source, source), source))
+        # heapq.heappush(PQ, (cost_function(source, source), source))
+        cost_func_value = cost_function(source, source)
+        pq.put((cost_func_value, source))
         count = 0
-        while PQ:
-            v = heapq.heappop(PQ)[1]
+        while not pq.empty():
+            # v = heapq.heappop(pq)[1]
+            v = pq.get()[1]
             if v == goal:  # Search goal node, check for our goal and if we met it return our path
                 prev[v].append(v)
                 return prev[v]
@@ -207,7 +211,9 @@ class DijkstrasProblem:
 
                 if w not in discovered:
                     discovered.add(w)
-                    heapq.heappush(PQ, (cost_function(v, w), w))
+                    cost_f_value = cost_function(v, w)
+                    pq.put((cost_f_value, w))
+                    # heapq.heappush(pq, cost_f_value, w))
                     prev[w].append(v)
             count = count + 1
         return None
