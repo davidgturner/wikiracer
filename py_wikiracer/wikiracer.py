@@ -187,33 +187,27 @@ class DijkstrasProblem:
     def _dijkstras(self, source, goal, cost_function):
         if source == goal:  # if source and goal are the same return
             return None
-        # PQ = []
         pq = PriorityQueue()
         prev = defaultdict(list)  # store the previous nodes in the path
-        discovered = {source}  # label root as visited
-        # heapq.heappush(PQ, (cost_function(source, source), source))
-        cost_func_value = cost_function(source, source)
-        pq.put((cost_func_value, source))
+        visited = {source}  # label root as visited
+        pq.put((0, source))
         count = 0
-        while not pq.empty():
-            # v = heapq.heappop(pq)[1]
+        while not pq.empty(): # and count < 3:
             v = pq.get()[1]
             if v == goal:  # Search goal node, check for our goal and if we met it return our path
                 prev[v].append(v)
                 return prev[v]
-
             v_source_html = self.internet.get_page(v)
             edges = Parser.get_links_in_page(v_source_html)
             for w in edges:
                 if w == goal:  # Search goal node, check for our goal and if we met it return our path
                     prev[v].append(v)
                     return prev[v]
-
-                if w not in discovered:
-                    discovered.add(w)
+                if w not in visited and w != source:
+                    visited.add(w)
                     cost_f_value = cost_function(v, w)
-                    pq.put((cost_f_value, w))
-                    # heapq.heappush(pq, cost_f_value, w))
+                    pq_cost_neighbor_tuple = (cost_f_value, w)
+                    pq.put(pq_cost_neighbor_tuple)
                     prev[w].append(v)
             count = count + 1
         return None

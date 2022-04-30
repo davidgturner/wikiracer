@@ -1,16 +1,31 @@
 from queue import PriorityQueue
 
+# # Z = 0
+# costFunc = lambda y, x: i + 1
+# # def costFunc(Z):
+# #     Z = Z + 1
+# #     return Z
+
+COUNT = 0
+def increment():
+    global COUNT
+    tempCount = COUNT
+    COUNT = COUNT + 1
+    return tempCount
+
 pq = PriorityQueue()
+pq.put((increment(), "Z"))
+pq.put((increment(), "A"))
+pq.put((increment(), "M"))
+pq.put((increment(), "N"))
+pq.put((increment(), "B"))
 
-pq.put((0.99, "Z"))
-pq.put((0.12, "A"))
-pq.put((0.68, "M"))
-pq.put((0.50, "M"))
-# pq.put((0.05, "M"))
+while not pq.empty():
+    value = pq.get()
+    print(value[1])
 
-value = pq.get()
-print(value[1])
-print(pq.qsize())
-
-value = pq.get()
-print(pq.qsize())
+# print(increment())
+# print(increment())
+# print(increment())
+# print(increment())
+# print(increment())
