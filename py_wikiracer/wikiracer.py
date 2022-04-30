@@ -1,3 +1,5 @@
+from collections import defaultdict
+from queue import LifoQueue, Queue, PriorityQueue
 from re import Match
 
 from py_wikiracer.internet import Internet
@@ -11,28 +13,6 @@ def invalid_url_pattern(test_str: str, disallowed_chars_array: []):
     concat_str = ''.join(disallowed_chars_array)
     re1 = re.compile(r"[" + concat_str + "`]")
     return re1.search(test_str)
-    # diss_list = []
-    # for x in disallowed_chars_array:
-    #     if x == '/':
-    #         diss_list.append(re.escape(x + "/"))
-    #     else:
-    #         diss_list.append(re.escape(x))
-    # exclude_pattern_2: str = "|".join(diss_list)
-    # return bool(re.search(exclude_pattern_2, test_str))
-
-    # re1 = re.compile(r"[:#/?`]")
-    # if re1.search(topic_message):
-    #     print("RE1: Invalid char detected. ")
-    #
-    # diss_list = []
-    # for x in disallowed_chars_array:
-    #
-    #     # if x == '/':
-    #     #     diss_list.append(re.escape(x + "/"))
-    #     # else:
-    #     #     diss_list.append(re.escape(x))
-    # exclude_pattern_2: str = "|".join(diss_list)
-    # return bool(re.search(exclude_pattern_2, test_str))
 
 
 def get_text_portion(link):
@@ -101,20 +81,43 @@ class BFSProblem:
     def bfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
         path = [source]
 
-        # first get the links of the source page
-        queue = []
-        # visited = []
-        # visited[0] = True
-        # non_visited_links: [] = Parser.get_links_in_page(source)
-        # for link in non_visited_links:
-        #     queue.append(link)
+        path = self._bfs(source, goal)
 
-        # all the links are considered the neighbors, add them to a queue
+        if path is None or (len(path) == 1 and path[0] == source):
+            return None
 
-        # while queue.
-        #
-        # path.append(goal)
+        path.append(goal)
         return path  # if no path exists, return None
+
+    def _bfs(self, source, goal):
+        if source == goal:  # if source and goal are the same return
+            return None
+        Q = Queue()  # let Q be a queue
+        prev = defaultdict(list)  # store the previous nodes in the path
+        discovered = {source}  # label root as visited
+        Q.put(source)
+        count = 0
+        while not Q.empty():
+            v = Q.get()
+
+            if v == goal:  # Search goal node, check for our goal and if we met it return our path
+                prev[v].append(v)
+                return prev[v]
+
+            v_source_html = self.internet.get_page(v)
+            edges = Parser.get_links_in_page(v_source_html)
+            for w in edges:
+
+                if w == goal:  # Search goal node, check for our goal and if we met it return our path
+                    prev[v].append(v)
+                    return prev[v]
+
+                if w not in discovered:
+                    discovered.add(w)
+                    Q.put(w)
+                    prev[w].append(v)
+            count = count + 1
+        return None
 
 
 class DFSProblem:
@@ -124,10 +127,41 @@ class DFSProblem:
     # Links should be inserted into a stack as they are located in the page. Do not add things to the visited list until they are taken out of the stack.
     def dfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
         path = [source]
-        # YOUR CODE HERE
-        # ...
+
+        path = self._dfs(source, goal)
+
+        if path is None or (len(path) == 1 and path[0] == source):
+            return None
+
         path.append(goal)
         return path  # if no path exists, return None
+
+    def _dfs(self, source, goal):
+        if source == goal:  # source and goal are the same
+            return None
+        S = LifoQueue()  # let S be a stack
+        prev = defaultdict(list)  # store the previous nodes in the path
+        visited = {source}  # label root as visited
+        S.put(source)
+        count = 0
+        while not S.empty():
+            v = S.get()
+            if v == goal:  # Search goal node, check for our goal and if we met it return our path
+                prev[v].append(v)
+                return prev[v]
+            v_source_html = self.internet.get_page(v)
+            edges = Parser.get_links_in_page(v_source_html)
+            for w in edges:
+                if w == goal:  # Search goal node, check for our goal and if we met it return our path
+                    prev[v].append(v)
+                    return prev[v]
+
+                if w not in visited:
+                    visited.add(w)
+                    S.put(w)
+                    prev[w].append(v)
+            count = count + 1
+        return None
 
 
 class DijkstrasProblem:
@@ -142,27 +176,41 @@ class DijkstrasProblem:
     # You should return the path from source to goal that minimizes the total cost. Assume cost > 0 for all edges.
     def dijkstras(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia", costFn=lambda x, y: len(y)):
         path = [source]
+        path = self._dijkstras(source, goal, costFn)
 
-        internet = Internet()
-        html = internet.get_page(source)
-        source_links = Parser.get_links_in_page(html)
-
-        h = []
-        for i, src_lnk in enumerate(source_links):
-            weight = costFn(source, src_lnk)
-            #print("calling the cost function... ")
-            #cost_value =
-            #print("cost_value = ", cost_value)
-            heapq.heappush(h, weight) # (weights[i], src_lnk))
-
-        # h = []
-        # for i in range(5):
-        #     heapq.heappush(h, (random.random(), i))
-        # for i in range(5):
-        #     heapq.heappop(h)
+        if path is None or (len(path) == 1 and path[0] == source):
+            return None
 
         path.append(goal)
         return path  # if no path exists, return None
+
+    def _dijkstras(self, source, goal, cost_function):
+        if source == goal:  # if source and goal are the same return
+            return None
+        PQ = []
+        prev = defaultdict(list)  # store the previous nodes in the path
+        discovered = {source}  # label root as visited
+        heapq.heappush(PQ, (cost_function(source, source), source))
+        count = 0
+        while PQ:
+            v = heapq.heappop(PQ)[1]
+            if v == goal:  # Search goal node, check for our goal and if we met it return our path
+                prev[v].append(v)
+                return prev[v]
+
+            v_source_html = self.internet.get_page(v)
+            edges = Parser.get_links_in_page(v_source_html)
+            for w in edges:
+                if w == goal:  # Search goal node, check for our goal and if we met it return our path
+                    prev[v].append(v)
+                    return prev[v]
+
+                if w not in discovered:
+                    discovered.add(w)
+                    heapq.heappush(PQ, (cost_function(v, w), w))
+                    prev[w].append(v)
+            count = count + 1
+        return None
 
 
 class WikiracerProblem:
