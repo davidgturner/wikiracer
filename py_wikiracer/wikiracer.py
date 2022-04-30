@@ -1,5 +1,5 @@
 from collections import defaultdict
-from queue import LifoQueue
+from queue import LifoQueue, Queue
 from re import Match
 
 from py_wikiracer.internet import Internet
@@ -102,21 +102,36 @@ class BFSProblem:
     # Download a page with self.internet.get_page().
     def bfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
         path = [source]
-
-        # first get the links of the source page
-        queue = []
-        # visited = []
-        # visited[0] = True
-        # non_visited_links: [] = Parser.get_links_in_page(source)
-        # for link in non_visited_links:
-        #     queue.append(link)
-
-        # all the links are considered the neighbors, add them to a queue
-
-        # while queue.
-        #
-        # path.append(goal)
+        path = self._bfs(source, goal)
+        path.append(goal)
         return path  # if no path exists, return None
+
+    def _bfs(self, source, goal):
+        if source == goal:  # if source and goal are the same return
+            return
+        Q = Queue()  # let Q be a queue
+        prev = defaultdict(list)  # store the previous nodes in the path
+        discovered = {source}  # label root as visited
+        Q.put(source)
+        count = 0
+        while Q:
+            v = Q.get()
+            if v == goal:  # Search goal node, check for our goal and if we met it return our path
+                prev[v].append(v)
+                return prev[v]
+
+            v_source_html = self.internet.get_page(v)
+            edges = Parser.get_links_in_page(v_source_html)
+            for w in edges:
+                if w == goal:  # Search goal node, check for our goal and if we met it return our path
+                    prev[v].append(v)
+                    return prev[v]
+
+                if w not in discovered:
+                    discovered.add(w)
+                    Q.put(w)
+                    prev[w].append(v)
+            count = count + 1
 
 
 class DFSProblem:
@@ -160,7 +175,6 @@ class DFSProblem:
                     discovered.add(w)
                     S.put(w)
                     prev[w].append(v)
-
             count = count + 1
 
 

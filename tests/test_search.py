@@ -54,7 +54,6 @@ def test_trivial_2():
     assert dfs.internet.requests == ["/wiki/Reese_Witherspoon"]
     assert dij.internet.requests == ["/wiki/Reese_Witherspoon"]
 
-@unittest.skip('skipped test')
 def test_bfs_basic():
     """
     BFS depth 2 search
@@ -63,7 +62,6 @@ def test_bfs_basic():
     assert bfs.bfs(source = "/wiki/Calvin_Li", goal = "/wiki/Wikipedia") == ['/wiki/Calvin_Li', '/wiki/Chinese_language', '/wiki/Wikipedia']
     assert bfs.internet.requests == ['/wiki/Calvin_Li', '/wiki/Chinese_name', '/wiki/Chinese_surname', '/wiki/Li_(surname_%E6%9D%8E)', '/wiki/Wuhan', '/wiki/Hubei', '/wiki/Central_Academy_of_Drama', '/wiki/All_Men_Are_Brothers_(TV_series)', '/wiki/Chinese_language']
 
-# @unittest.skip('skipped test')
 def test_dfs_basic():
     """
     DFS depth 2 search
@@ -112,7 +110,7 @@ def test_none_on_fail():
     assert dfs.internet.requests == ["/wiki/Calvin_Li"]
     assert dij.internet.requests == ["/wiki/Calvin_Li"]
 
-@unittest.skip('skipped test')
+# @unittest.skip('skipped test')
 def test_dfs_complex():
     """
     A complex DFS example to test your searching algorithm.
