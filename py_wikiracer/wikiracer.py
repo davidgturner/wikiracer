@@ -1,3 +1,5 @@
+from collections import defaultdict
+from queue import LifoQueue
 from re import Match
 
 from py_wikiracer.internet import Internet
@@ -124,10 +126,42 @@ class DFSProblem:
     # Links should be inserted into a stack as they are located in the page. Do not add things to the visited list until they are taken out of the stack.
     def dfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
         path = [source]
-        # YOUR CODE HERE
-        # ...
+
+        path = self._dfs(source, goal)
+
         path.append(goal)
         return path  # if no path exists, return None
+
+    def _dfs(self, source, goal):
+        if source == goal:  # source and goal are the same
+            return
+        S = LifoQueue()  # let S be a stack
+        prev = defaultdict(list)  # store the previous nodes in the path
+        discovered = {source}  # label root as visited
+        S.put(source)
+        count = 0
+        while S:
+            v = S.get()
+            if v == goal:  # Search goal node, check for our goal and if we met it return our path
+                prev[v].append(v)
+                return prev[v]
+
+            v_source_html = self.internet.get_page(v)
+            edges = Parser.get_links_in_page(v_source_html)
+            for w in edges:
+                if w == goal:  # Search goal node, check for our goal and if we met it return our path
+                    # print("in edges found goal ", w, " with a depth of ", count)
+                    # prev[v].append(w)
+                    prev[v].append(v)
+                    return prev[v]
+
+                # print("trying edge for ", w, " based on it being a neighbor of ", v, " count = ", count)
+                if w not in discovered:
+                    discovered.add(w)
+                    S.put(w)
+                    prev[w].append(v)
+
+            count = count + 1
 
 
 class DijkstrasProblem:
