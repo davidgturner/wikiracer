@@ -13,28 +13,6 @@ def invalid_url_pattern(test_str: str, disallowed_chars_array: []):
     concat_str = ''.join(disallowed_chars_array)
     re1 = re.compile(r"[" + concat_str + "`]")
     return re1.search(test_str)
-    # diss_list = []
-    # for x in disallowed_chars_array:
-    #     if x == '/':
-    #         diss_list.append(re.escape(x + "/"))
-    #     else:
-    #         diss_list.append(re.escape(x))
-    # exclude_pattern_2: str = "|".join(diss_list)
-    # return bool(re.search(exclude_pattern_2, test_str))
-
-    # re1 = re.compile(r"[:#/?`]")
-    # if re1.search(topic_message):
-    #     print("RE1: Invalid char detected. ")
-    #
-    # diss_list = []
-    # for x in disallowed_chars_array:
-    #
-    #     # if x == '/':
-    #     #     diss_list.append(re.escape(x + "/"))
-    #     # else:
-    #     #     diss_list.append(re.escape(x))
-    # exclude_pattern_2: str = "|".join(diss_list)
-    # return bool(re.search(exclude_pattern_2, test_str))
 
 
 def get_text_portion(link):
@@ -103,7 +81,6 @@ class BFSProblem:
     def bfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
         path = [source]
 
-        print("in bfs...")
         path = self._bfs(source, goal)
 
         if path is None or (len(path) == 1 and path[0] == source):
@@ -123,30 +100,25 @@ class BFSProblem:
         while not Q.empty():
             v = Q.get()
 
-            print("v get  ", v)
             if v == goal:  # Search goal node, check for our goal and if we met it return our path
                 prev[v].append(v)
                 return prev[v]
 
             v_source_html = self.internet.get_page(v)
-            print("source html ", v_source_html)
             edges = Parser.get_links_in_page(v_source_html)
-            print("edges ", edges)
             for w in edges:
 
-                print("checking if w is the goal... ", w, goal)
                 if w == goal:  # Search goal node, check for our goal and if we met it return our path
                     prev[v].append(v)
                     return prev[v]
 
-                print("is w not discovered? ", discovered)
-                print("queue size = ", Q.qsize())
                 if w not in discovered:
                     discovered.add(w)
                     Q.put(w)
                     prev[w].append(v)
             count = count + 1
         return None
+
 
 class DFSProblem:
     def __init__(self):
@@ -156,13 +128,10 @@ class DFSProblem:
     def dfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
         path = [source]
 
-        print("in dfs...")
         path = self._dfs(source, goal)
-        print("got dfs path...")
 
         if path is None or (len(path) == 1 and path[0] == source):
             return None
-        print("in dfs...")
 
         path.append(goal)
         return path  # if no path exists, return None
@@ -183,20 +152,17 @@ class DFSProblem:
             v_source_html = self.internet.get_page(v)
             edges = Parser.get_links_in_page(v_source_html)
             for w in edges:
-                print("dfs searching edges ", w, " from ", v)
                 if w == goal:  # Search goal node, check for our goal and if we met it return our path
                     prev[v].append(v)
                     return prev[v]
 
-                print("dfs is w not discovered? ", visited)
-                print("dfs stack size = ", S.qsize())
                 if w not in visited:
                     visited.add(w)
                     S.put(w)
-                    print("putting w on the stack ", w)
                     prev[w].append(v)
             count = count + 1
         return None
+
 
 class DijkstrasProblem:
     def __init__(self):
@@ -218,25 +184,6 @@ class DijkstrasProblem:
         path.append(goal)
         return path  # if no path exists, return None
 
-    # def _dijkstras_1(self, source, goal, costFn):
-    #     internet = Internet()
-    #     html = internet.get_page(source)
-    #     source_links = Parser.get_links_in_page(html)
-    #
-    #     # heapq = []
-    #     # for i, src_lnk in enumerate(source_links):
-    #     #     weight = costFn(source, src_lnk)
-    #     #     # print("calling the cost function... ")
-    #     #     # cost_value =
-    #     #     # print("cost_value = ", cost_value)
-    #     #     heapq.heappush((weight, ))  # (weights[i], src_lnk))
-    #
-    #     # h = []
-    #     # for i in range(5):
-    #     #     heapq.heappush(h, (random.random(), i))
-    #     # for i in range(5):
-    #     #     heapq.heappop(h)
-
     def _dijkstras(self, source, goal, cost_function):
         if source == goal:  # if source and goal are the same return
             return None
@@ -247,7 +194,6 @@ class DijkstrasProblem:
         count = 0
         while PQ:
             v = heapq.heappop(PQ)[1]
-            #print("next node V ", v)
             if v == goal:  # Search goal node, check for our goal and if we met it return our path
                 prev[v].append(v)
                 return prev[v]
@@ -255,18 +201,17 @@ class DijkstrasProblem:
             v_source_html = self.internet.get_page(v)
             edges = Parser.get_links_in_page(v_source_html)
             for w in edges:
-                #print("checking if w equals the goal ", w, goal)
                 if w == goal:  # Search goal node, check for our goal and if we met it return our path
                     prev[v].append(v)
                     return prev[v]
 
                 if w not in discovered:
                     discovered.add(w)
-                    print("adding to PQ - cost ", cost_function(v, w), " node w", w)
                     heapq.heappush(PQ, (cost_function(v, w), w))
                     prev[w].append(v)
             count = count + 1
         return None
+
 
 class WikiracerProblem:
     def __init__(self):
