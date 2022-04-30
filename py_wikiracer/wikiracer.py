@@ -1,5 +1,5 @@
 from collections import defaultdict
-from queue import LifoQueue, Queue
+from queue import LifoQueue, Queue, PriorityQueue
 from re import Match
 
 from py_wikiracer.internet import Internet
@@ -102,37 +102,51 @@ class BFSProblem:
     # Download a page with self.internet.get_page().
     def bfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
         path = [source]
+
+        print("in bfs...")
         path = self._bfs(source, goal)
+
+        if path is None or (len(path) == 1 and path[0] == source):
+            return None
+
         path.append(goal)
         return path  # if no path exists, return None
 
     def _bfs(self, source, goal):
         if source == goal:  # if source and goal are the same return
-            return
+            return None
         Q = Queue()  # let Q be a queue
         prev = defaultdict(list)  # store the previous nodes in the path
         discovered = {source}  # label root as visited
         Q.put(source)
         count = 0
-        while Q:
+        while not Q.empty():
             v = Q.get()
+
+            print("v get  ", v)
             if v == goal:  # Search goal node, check for our goal and if we met it return our path
                 prev[v].append(v)
                 return prev[v]
 
             v_source_html = self.internet.get_page(v)
+            print("source html ", v_source_html)
             edges = Parser.get_links_in_page(v_source_html)
+            print("edges ", edges)
             for w in edges:
+
+                print("checking if w is the goal... ", w, goal)
                 if w == goal:  # Search goal node, check for our goal and if we met it return our path
                     prev[v].append(v)
                     return prev[v]
 
+                print("is w not discovered? ", discovered)
+                print("queue size = ", Q.qsize())
                 if w not in discovered:
                     discovered.add(w)
                     Q.put(w)
                     prev[w].append(v)
             count = count + 1
-
+        return None
 
 class DFSProblem:
     def __init__(self):
@@ -142,41 +156,47 @@ class DFSProblem:
     def dfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
         path = [source]
 
+        print("in dfs...")
         path = self._dfs(source, goal)
+        print("got dfs path...")
+
+        if path is None or (len(path) == 1 and path[0] == source):
+            return None
+        print("in dfs...")
 
         path.append(goal)
         return path  # if no path exists, return None
 
     def _dfs(self, source, goal):
         if source == goal:  # source and goal are the same
-            return
+            return None
         S = LifoQueue()  # let S be a stack
         prev = defaultdict(list)  # store the previous nodes in the path
-        discovered = {source}  # label root as visited
+        visited = {source}  # label root as visited
         S.put(source)
         count = 0
-        while S:
+        while not S.empty():
             v = S.get()
             if v == goal:  # Search goal node, check for our goal and if we met it return our path
                 prev[v].append(v)
                 return prev[v]
-
             v_source_html = self.internet.get_page(v)
             edges = Parser.get_links_in_page(v_source_html)
             for w in edges:
+                print("dfs searching edges ", w, " from ", v)
                 if w == goal:  # Search goal node, check for our goal and if we met it return our path
-                    # print("in edges found goal ", w, " with a depth of ", count)
-                    # prev[v].append(w)
                     prev[v].append(v)
                     return prev[v]
 
-                # print("trying edge for ", w, " based on it being a neighbor of ", v, " count = ", count)
-                if w not in discovered:
-                    discovered.add(w)
+                print("dfs is w not discovered? ", visited)
+                print("dfs stack size = ", S.qsize())
+                if w not in visited:
+                    visited.add(w)
                     S.put(w)
+                    print("putting w on the stack ", w)
                     prev[w].append(v)
             count = count + 1
-
+        return None
 
 class DijkstrasProblem:
     def __init__(self):
@@ -190,28 +210,63 @@ class DijkstrasProblem:
     # You should return the path from source to goal that minimizes the total cost. Assume cost > 0 for all edges.
     def dijkstras(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia", costFn=lambda x, y: len(y)):
         path = [source]
+        path = self._dijkstras(source, goal, costFn)
 
-        internet = Internet()
-        html = internet.get_page(source)
-        source_links = Parser.get_links_in_page(html)
-
-        h = []
-        for i, src_lnk in enumerate(source_links):
-            weight = costFn(source, src_lnk)
-            #print("calling the cost function... ")
-            #cost_value =
-            #print("cost_value = ", cost_value)
-            heapq.heappush(h, weight) # (weights[i], src_lnk))
-
-        # h = []
-        # for i in range(5):
-        #     heapq.heappush(h, (random.random(), i))
-        # for i in range(5):
-        #     heapq.heappop(h)
+        if path is None or (len(path) == 1 and path[0] == source):
+            return None
 
         path.append(goal)
         return path  # if no path exists, return None
 
+    # def _dijkstras_1(self, source, goal, costFn):
+    #     internet = Internet()
+    #     html = internet.get_page(source)
+    #     source_links = Parser.get_links_in_page(html)
+    #
+    #     # heapq = []
+    #     # for i, src_lnk in enumerate(source_links):
+    #     #     weight = costFn(source, src_lnk)
+    #     #     # print("calling the cost function... ")
+    #     #     # cost_value =
+    #     #     # print("cost_value = ", cost_value)
+    #     #     heapq.heappush((weight, ))  # (weights[i], src_lnk))
+    #
+    #     # h = []
+    #     # for i in range(5):
+    #     #     heapq.heappush(h, (random.random(), i))
+    #     # for i in range(5):
+    #     #     heapq.heappop(h)
+
+    def _dijkstras(self, source, goal, cost_function):
+        if source == goal:  # if source and goal are the same return
+            return None
+        PQ = []
+        prev = defaultdict(list)  # store the previous nodes in the path
+        discovered = {source}  # label root as visited
+        heapq.heappush(PQ, (cost_function(source, source), source))
+        count = 0
+        while PQ:
+            v = heapq.heappop(PQ)[1]
+            #print("next node V ", v)
+            if v == goal:  # Search goal node, check for our goal and if we met it return our path
+                prev[v].append(v)
+                return prev[v]
+
+            v_source_html = self.internet.get_page(v)
+            edges = Parser.get_links_in_page(v_source_html)
+            for w in edges:
+                #print("checking if w equals the goal ", w, goal)
+                if w == goal:  # Search goal node, check for our goal and if we met it return our path
+                    prev[v].append(v)
+                    return prev[v]
+
+                if w not in discovered:
+                    discovered.add(w)
+                    print("adding to PQ - cost ", cost_function(v, w), " node w", w)
+                    heapq.heappush(PQ, (cost_function(v, w), w))
+                    prev[w].append(v)
+            count = count + 1
+        return None
 
 class WikiracerProblem:
     def __init__(self):
