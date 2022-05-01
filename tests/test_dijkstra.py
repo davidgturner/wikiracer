@@ -11,7 +11,17 @@ def increment():
 
 class DijkstraTests(unittest.TestCase):
 
+    # this tests ties in dijkstra
+    def test_dijkstra_cost_func_ties(self):
+        dijk = DijkstrasProblem()
+        c = lambda y, x: len(x) * 1000 + x.count("a") * 100 + x.count("u") + x.count("h") * 5 - x.count("F")
+        expected_result = ['/wiki/Calvin_Li', '/wiki/Main_Page', '/wiki/Wikipedia']
+        dijkstra_path = dijk.dijkstras(source="/wiki/Calvin_Li", goal="/wiki/Wikipedia", costFn=c)
+        print(dijkstra_path)
+        assert expected_result == dijkstra_path
+
     # this tests dijkstras with a cost function of 1 which should behave exactly like Dijkstras
+    @unittest.skip('skipped test')
     def test_dijkstra_as_bfs(self):
         src = "/wiki/Calvin_Li"
         goal = "/wiki/Wikipedia"

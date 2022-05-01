@@ -7,6 +7,7 @@ from typing import List
 import re
 import heapq
 import random
+import sys
 
 
 def invalid_url_pattern(test_str: str, disallowed_chars_array: []):
@@ -167,6 +168,12 @@ class DFSProblem:
 class DijkstrasProblem:
     def __init__(self):
         self.internet = Internet()
+        self.count = 0
+
+    def increment(self):
+        temp_count = self.count
+        self.count = self.count + 1
+        return temp_count
 
     # Links should be inserted into the heap as they are located in the page.
     # By default, the cost of going to a link is the length of a particular destination link's name. For instance,
@@ -190,26 +197,47 @@ class DijkstrasProblem:
         pq = PriorityQueue()
         prev = defaultdict(list)  # store the previous nodes in the path
         visited = {source}  # label root as visited
-        pq.put((0, source))
+        queue_source_tuple = (0, self.increment(), source)
+        pq.put(queue_source_tuple)
+
+        # with open("c:/dijkstra_out.txt", "wc") as external_file:
+            #add_text = "This text will be added to the file"
+        #sys.stdout = open("test.txt", "w")
+
         count = 0
-        while not pq.empty(): # and count < 3:
-            v = pq.get()[1]
+        while not pq.empty():
+            v = pq.get()[2]
+            #if v in visited:
+            #    continue
+
+            print("popped off the queue! ", v, count)
             if v == goal:  # Search goal node, check for our goal and if we met it return our path
                 prev[v].append(v)
                 return prev[v]
+
+            # TODO - do something here before we
             v_source_html = self.internet.get_page(v)
+            visited.add(v)
             edges = Parser.get_links_in_page(v_source_html)
             for w in edges:
                 if w == goal:  # Search goal node, check for our goal and if we met it return our path
                     prev[v].append(v)
+                    print("found goal! ", v, w, prev[v])
                     return prev[v]
-                if w not in visited and w != source:
+
+                if w not in visited:
                     visited.add(w)
                     cost_f_value = cost_function(v, w)
-                    pq_cost_neighbor_tuple = (cost_f_value, w)
+                    pq_cost_neighbor_tuple = (cost_f_value, self.increment(), w)
+
+                    # expected_result = ['/wiki/Calvin_Li', '/wiki/Main_Page', '/wiki/Wikipedia']
+                    # if (w in expected_result):
+                    print("adding the pq_cost_neighbor_tuple as ", pq_cost_neighbor_tuple, v, count)
                     pq.put(pq_cost_neighbor_tuple)
                     prev[w].append(v)
             count = count + 1
+
+        #sys.stdout.close()
         return None
 
 

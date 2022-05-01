@@ -14,7 +14,6 @@ from py_wikiracer.wikiracer import Parser, BFSProblem, DFSProblem, DijkstrasProb
 
 REQ_LIMIT = 75 # per test, normally
 
-# @unittest.skip('skipped test')
 def test_parser():
     internet = Internet()
     html = internet.get_page("/wiki/Henry_Krumrey")
@@ -88,7 +87,6 @@ class CustomInternet():
         self.requests.append(page)
         return f'<a href="{page}"></a>'
 
-# @unittest.skip('skipped test')
 def test_none_on_fail():
     """
     Program should return None on failure

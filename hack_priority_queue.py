@@ -6,19 +6,21 @@ from queue import PriorityQueue
 # #     Z = Z + 1
 # #     return Z
 
-COUNT = 0
-def increment():
-    global COUNT
-    tempCount = COUNT
-    COUNT = COUNT + 1
-    return tempCount
+# COUNT = 0
+# def increment():
+#     global COUNT
+#     tempCount = COUNT
+#     COUNT = COUNT + 1
+#     return tempCount
+
+costFn = lambda y, x: len(x) * 1000 + x.count("a") * 100 + x.count("u") + x.count("h") * 5 - x.count("F")
 
 pq = PriorityQueue()
-pq.put((increment(), "Z"))
-pq.put((increment(), "A"))
-pq.put((increment(), "M"))
-pq.put((increment(), "N"))
-pq.put((increment(), "B"))
+pq.put((costFn("a","b"), "Z"))
+pq.put((costFn("a","b"), "A"))
+pq.put((costFn("a","b"), "M"))
+pq.put((costFn("a","b"), "N"))
+pq.put((costFn("a","b"), "B"))
 
 while not pq.empty():
     value = pq.get()
