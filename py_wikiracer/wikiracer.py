@@ -183,7 +183,9 @@ class DijkstrasProblem:
     # You should return the path from source to goal that minimizes the total cost. Assume cost > 0 for all edges.
     def dijkstras(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia", costFn=lambda x, y: len(y)):
         path = [source]
-        path = self._dijkstras(source, goal, costFn)
+        # path = self._dijkstras(source, goal, costFn)
+        path = self._find_path(source, goal, costFn, path)
+        print("THIS IS THE RETURNED PATH = ", path)
 
         if path is None or (len(path) == 1 and path[0] == source):
             return None
@@ -191,54 +193,146 @@ class DijkstrasProblem:
         path.append(goal)
         return path  # if no path exists, return None
 
+    # distances[start] = 0
+    # vertices_to_explore = [(0, start)]
+    #
+    # while vertices_to_explore:
+    #     current_distance, current_vertex = heappop(vertices_to_explore)
+    #     for neighbor, edge_weight in graph[current_vertex]:
+    #         new_distance = current_distance + edge_weight
+    #         if new_distance < distances[neighbor]:
+    #             distances[neighbor] = new_distance
+    #             heappush(vertices_to_explore, (new_distance, neighbor))
+
     def _dijkstras(self, source, goal, cost_function):
         if source == goal:  # if source and goal are the same return
             return None
-        pq = PriorityQueue()
-        prev = defaultdict(list)  # store the previous nodes in the path
-        visited = {source}  # label root as visited
-        queue_source_tuple = (0, self.increment(), source)
-        pq.put(queue_source_tuple)
 
-        # with open("c:/dijkstra_out.txt", "wc") as external_file:
-            #add_text = "This text will be added to the file"
-        #sys.stdout = open("test.txt", "w")
+        pq = PriorityQueue()
+
+        total_costs = {source: 0}
+        prev = defaultdict(list)  # store the previous nodes in the path
+
+        visited = {source}  # visited nodes set label root as visited
+        pq.put((0, self.increment(), source))  # # setting the start node cost to zero add the starting node to the priority queue
 
         count = 0
-        while not pq.empty():
-            v = pq.get()[2]
-            #if v in visited:
-            #    continue
+        while not pq.empty() or count < 2:  # until the queue is empty we continue processing
+            cost_new_smallest, _, new_smallest = pq.get()  # removes the smallest item from the queue
+            print("element popped off of min pq: ", new_smallest, " cost of element: ", cost_new_smallest)
 
-            print("popped off the queue! ", v, count)
-            if v == goal:  # Search goal node, check for our goal and if we met it return our path
-                prev[v].append(v)
-                return prev[v]
+            if new_smallest == goal:  # Search goal node, check for our goal and if we met it return our path
+                print("found goal! ", goal)
+                return prev[new_smallest]
 
-            # TODO - do something here before we
-            v_source_html = self.internet.get_page(v)
-            visited.add(v)
-            edges = Parser.get_links_in_page(v_source_html)
-            for w in edges:
-                if w == goal:  # Search goal node, check for our goal and if we met it return our path
-                    prev[v].append(v)
-                    print("found goal! ", v, w, prev[v])
-                    return prev[v]
+            for neighbor in Parser.get_links_in_page(self.internet.get_page(new_smallest)):  # check on the neighbors
+                # if neighbor == goal:  # Search goal node, check for our goal and if we met it return our path
+                #     print("found goal! ", new_smallest, neighbor, prev[neighbor])
+                #     return prev[neighbor]
+                if neighbor not in visited:  # check if the node has been visited already
+                    edge_weight = cost_function(new_smallest, neighbor)
+                    alt = cost_new_smallest + edge_weight
+                    dist_neighbor = self.get_dist(neighbor, total_costs)
+                    # dist_neighbor = max(dist_neighbor, alt)
+                    # print("checking neighbor of ", neighbor, " with a cost of ", edge_weight, " alt dist ",
+                    #       alt, "dist_neighbor ", dist_neighbor)
+                    if alt < dist_neighbor or dist_neighbor == 0:
+                        # print("visiting neighbor ", neighbor)
+                        visited.add(neighbor)
+                        total_costs[neighbor] = alt
+                        prev[neighbor].append(new_smallest)
+                        print("adding the neighbor", neighbor, " to the min pq with cost of ", alt)
+                        pq.put((alt, self.increment(), neighbor))
 
-                if w not in visited:
-                    visited.add(w)
-                    cost_f_value = cost_function(v, w)
-                    pq_cost_neighbor_tuple = (cost_f_value, self.increment(), w)
+                    # pq_cost_neighbor_tuple = (edge_weight, self.increment(), neighbor)
+                    # pq.put(pq_cost_neighbor_tuple)
+                    #
+                    # cost_of_new_smallest = total_costs[new_smallest]
+                    # if not cost_of_new_smallest:
+                    #     cost_of_new_smallest = 0
+                    #
+                    # alt_path_distance = cost_of_new_smallest + edge_weight  # make a path containing the new path distance
+                    #
+                    # if neighbor not in total_costs.keys():
+                    #     total_costs[neighbor] = 0
+                    #
+                    # if alt_path_distance < total_costs[neighbor]:  # check if new path is better than existing
+                    #     total_costs[neighbor] = alt_path_distance  # updates the path length of the neighbor
+                    #     prev[neighbor].append(new_smallest)
 
-                    # expected_result = ['/wiki/Calvin_Li', '/wiki/Main_Page', '/wiki/Wikipedia']
-                    # if (w in expected_result):
-                    print("adding the pq_cost_neighbor_tuple as ", pq_cost_neighbor_tuple, v, count)
-                    pq.put(pq_cost_neighbor_tuple)
-                    prev[w].append(v)
+                    # if neighbor == goal:  # Search goal node, check for our goal and if we met it return our path
+                    #     print("found goal! ", new_smallest, neighbor, prev[new_smallest])
+                    #     return prev[new_smallest]
+                    # visited.add(neighbor)
+                    # pq_cost_neighbor_tuple = (cost_f_value, self.increment(), neighbor)
+                    # # if (w in expected_result):
+                    # pq.put(pq_cost_neighbor_tuple)
+
             count = count + 1
+            # print("popped off the queue! ", v, count)
+            # if v == goal:  # Search goal node, check for our goal and if we met it return our path
+            #     prev[v].append(v)
+            #     return prev[v]
+            #
+            # # TODO - do something here before we
 
-        #sys.stdout.close()
+        # sys.stdout.close()
         return None
+
+    def get_dist(self, neighbor, total_costs):
+        total_cost_neighbor = 0
+        if neighbor in total_costs:
+            total_cost_neighbor = total_costs[neighbor]
+        return total_cost_neighbor
+
+    def _find_path(self, source, goal, cost_fn, path: []):
+        pq : Queue = PriorityQueue()
+        pq.put((0, source))
+        explored = set()
+
+        # cost_table = dict()
+        page_graph = defaultdict(list)
+        prev_parent = dict()
+        prev_parent[source] = None
+
+        while not pq.empty():
+            cost, page = pq.get()
+            if page not in explored:
+                explored.add(page)
+                for neighbor in Parser.get_links_in_page(self.internet.get_page(page)):
+                    if neighbor == goal:
+                        path = self.backtrack_path(page_graph, prev_parent, page, path)
+                        return path
+
+                    # keep track of the cost in the page graph
+                    page_graph[neighbor].append((cost + cost_fn(page, neighbor), page))
+
+                    # never reset the source node
+                    if neighbor != source:
+                        prev_parent[neighbor] = page
+
+                    pq.put((cost + cost_fn(page, neighbor), neighbor))
+
+        return path
+
+    def backtrack_path(self, page_graph: defaultdict, prev_parent: dict, page, path: []):
+        current_ptr = page
+        path_backwards = [current_ptr]
+        PAGE_INDEX = 1
+        while current_ptr is not None:
+            smallest_parent = min(page_graph[current_ptr])[PAGE_INDEX]
+            if prev_parent[smallest_parent] is None:
+                break
+            next_parent = prev_parent[smallest_parent]
+            path_backwards.append(next_parent)
+            current_ptr = next_parent
+
+        # reverse the backwards path to forwards now
+        path.extend(list(reversed(path_backwards)))
+        print("final final final ", path)
+        return path
+
+
 
 
 class WikiracerProblem:

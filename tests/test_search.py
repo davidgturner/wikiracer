@@ -69,7 +69,6 @@ def test_dfs_basic():
     assert dfs.dfs(source = "/wiki/Calvin_Li", goal = "/wiki/Wikipedia") == ['/wiki/Calvin_Li', '/wiki/Main_Page', '/wiki/Wikipedia']
     assert dfs.internet.requests == ['/wiki/Calvin_Li', '/wiki/Main_Page']
 
-@unittest.skip('skipped test')
 def test_dijkstras_basic():
     """
     DFS depth 2 search
@@ -87,6 +86,7 @@ class CustomInternet():
         self.requests.append(page)
         return f'<a href="{page}"></a>'
 
+@unittest.skip('skipped test')
 def test_none_on_fail():
     """
     Program should return None on failure
