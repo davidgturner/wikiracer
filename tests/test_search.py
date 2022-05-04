@@ -14,13 +14,11 @@ from py_wikiracer.wikiracer import Parser, BFSProblem, DFSProblem, DijkstrasProb
 
 REQ_LIMIT = 75 # per test, normally
 
-# @unittest.skip('skipped test')
 def test_parser():
     internet = Internet()
     html = internet.get_page("/wiki/Henry_Krumrey")
     assert Parser.get_links_in_page(html) == ['/wiki/Wisconsin_State_Senate', '/wiki/Wisconsin_Senate,_District_20', '/wiki/Wisconsin_State_Assembly', '/wiki/Plymouth,_Sheboygan_County,_Wisconsin', '/wiki/Republican_Party_(United_States)', '/wiki/Sheboygan_County,_Wisconsin', '/wiki/United_States_presidential_election_in_Wisconsin,_1900', '/wiki/Crystal_Lake,_Illinois', '/wiki/Henry_Krumrey', '/wiki/Main_Page']
 
-@unittest.skip('skipped test')
 def test_trivial():
     """
     All pages contain a link to themselves, which any search algorithm should recognize.
@@ -37,7 +35,6 @@ def test_trivial():
     assert dfs.internet.requests == ["/wiki/ASDF"]
     assert dij.internet.requests == ["/wiki/ASDF"]
 
-@unittest.skip('skipped test')
 def test_trivial_2():
     """
     Searches going to page 1 distance away.
@@ -70,7 +67,6 @@ def test_dfs_basic():
     assert dfs.dfs(source = "/wiki/Calvin_Li", goal = "/wiki/Wikipedia") == ['/wiki/Calvin_Li', '/wiki/Main_Page', '/wiki/Wikipedia']
     assert dfs.internet.requests == ['/wiki/Calvin_Li', '/wiki/Main_Page']
 
-@unittest.skip('skipped test')
 def test_dijkstras_basic():
     """
     DFS depth 2 search
@@ -88,7 +84,6 @@ class CustomInternet():
         self.requests.append(page)
         return f'<a href="{page}"></a>'
 
-# @unittest.skip('skipped test')
 def test_none_on_fail():
     """
     Program should return None on failure

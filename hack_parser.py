@@ -14,7 +14,7 @@ internet = Internet()
 #     print ("RE1: Invalid char detected. ")
 
 
-source = "/wiki/Main_Page" # "/wiki/Calvin_Li" # "/wiki/Nashville,_Tennessee" # "/wiki/Athlon_Sports"  # "/wiki/Fiji"
+source = "/wiki/Main_Page"  # "/wiki/Calvin_Li" # "/wiki/Nashville,_Tennessee" # "/wiki/Athlon_Sports"  # "/wiki/Fiji"
 text_test = get_text_portion(source)
 
 # print(text_test)
@@ -31,6 +31,8 @@ edges = Parser.get_links_in_page(v_source_html)
 
 # print(edges[0])
 
+costFn = lambda y, x: len(x) * 1000 + x.count("a") * 100 + x.count("u") + x.count("h") * 5 - x.count("F")
+
 for e in edges:
-    print("edge ", e)
+    print("edge ", e, " cost: ", costFn("dummy",e))
 
