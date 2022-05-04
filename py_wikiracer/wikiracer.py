@@ -1,13 +1,10 @@
 from collections import defaultdict
 from queue import LifoQueue, Queue, PriorityQueue
-from re import Match
 
 from py_wikiracer.internet import Internet
 from typing import List
 import re
-import heapq
 import random
-import sys
 
 
 def invalid_url_pattern(test_str: str, disallowed_chars_array: []):
@@ -32,10 +29,10 @@ def exclude_links(x: str):
 def backtrack_path(page_graph: defaultdict, prev_parent: dict, page):
     current_ptr = page
     path_backwards = [current_ptr]
-    PAGE_INDEX = 1
+    page_index = 1
     while current_ptr is not None:
         if page_graph[current_ptr]:
-            smallest_parent = min(page_graph[current_ptr])[PAGE_INDEX]
+            smallest_parent = min(page_graph[current_ptr])[page_index]
             if prev_parent[smallest_parent] is None:
                 break
             next_parent = prev_parent[smallest_parent]
@@ -44,8 +41,7 @@ def backtrack_path(page_graph: defaultdict, prev_parent: dict, page):
         else:
             break
 
-    # reverse the backwards path to forwards now
-    backwards_path_reversed = list(reversed(path_backwards))
+    backwards_path_reversed = list(reversed(path_backwards))  # reverse the backwards path to forwards now
     return backwards_path_reversed
 
 
@@ -76,7 +72,7 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn,
 
                 queue_input.put((cost + cost_fn(page, neighbor), neighbor))
 
-    return path
+    return None  # return None since we didn't find a path
 
 
 class Parser:
@@ -96,7 +92,6 @@ class Parser:
         # A good starting place is to print out `html` and look for patterns before/after the links that you can string.find().
         # Make sure your list doesn't have duplicates. Return the list in the same order as they appear in the HTML.
         # This function will be stress tested so make it efficient!
-        # TODO - change this to not use regex and to do it in few operations as possible.
         all_links: [] = re.findall(r'(?<=<a href=")[^"]*', html)
         for link in all_links:
             text_portion = get_text_portion(link)
@@ -130,18 +125,12 @@ class BFSProblem:
     #  This applies for bfs, dfs, and dijkstra's.
     # Download a page with self.internet.get_page().
     def bfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
-        # if source == goal:
-        #     return [source, goal]
-
         path = [source]
 
-        # path = self._bfs(source, goal)
         dummy_cost_fn = lambda x, y: 1
         found_path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn, path)
 
-        print("Found path is: ", found_path)
-
-        if found_path is None: #  or (len(found_path) == 1 and found_path[0] == source):
+        if found_path is None:
             return None
 
         if found_path[0] != path[0]:
@@ -149,36 +138,6 @@ class BFSProblem:
 
         path.append(goal)
         return path  # if no path exists, return None
-
-    # def _bfs(self, source, goal):
-    #     if source == goal:  # if source and goal are the same return
-    #         return None
-    #     Q = Queue()  # let Q be a queue
-    #     prev = defaultdict(list)  # store the previous nodes in the path
-    #     discovered = {source}  # label root as visited
-    #     Q.put(source)
-    #     count = 0
-    #     while not Q.empty():
-    #         v = Q.get()
-    #
-    #         if v == goal:  # Search goal node, check for our goal and if we met it return our path
-    #             prev[v].append(v)
-    #             return prev[v]
-    #
-    #         v_source_html = self.internet.get_page(v)
-    #         edges = Parser.get_links_in_page(v_source_html)
-    #         for w in edges:
-    #
-    #             if w == goal:  # Search goal node, check for our goal and if we met it return our path
-    #                 prev[v].append(v)
-    #                 return prev[v]
-    #
-    #             if w not in discovered:
-    #                 discovered.add(w)
-    #                 Q.put(w)
-    #                 prev[w].append(v)
-    #         count = count + 1
-    #     return None
 
 
 class DFSProblem:
@@ -189,53 +148,19 @@ class DFSProblem:
     # Links should be inserted into a stack as they are located in the page. Do not add things to the visited list until they are taken out of the stack.
     def dfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
 
-        # if source == goal:
-        #     return [source, goal]
-
         path = [source]
 
-        # path = self._dfs(source, goal)
         dummy_cost_fn = lambda x, y: 1
         found_path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn, path)
 
-        # if found_path is None or (len(found_path) == 1 and found_path[0] == source):
-        #     return None
+        if found_path is None:
+            return None
 
-        if found_path[0] != path[0]:
+        if found_path is not None and found_path[0] != path[0]:
             path.extend(found_path)
-
-        # if path is None or (len(path) == 1 and path[0] == source):
-        #     return None
 
         path.append(goal)
         return path  # if no path exists, return None
-
-    # def _dfs(self, source, goal):
-    #     if source == goal:  # source and goal are the same
-    #         return None
-    #     S = LifoQueue()  # let S be a stack
-    #     prev = defaultdict(list)  # store the previous nodes in the path
-    #     visited = {source}  # label root as visited
-    #     S.put(source)
-    #     count = 0
-    #     while not S.empty():
-    #         v = S.get()
-    #         if v == goal:  # Search goal node, check for our goal and if we met it return our path
-    #             prev[v].append(v)
-    #             return prev[v]
-    #         v_source_html = self.internet.get_page(v)
-    #         edges = Parser.get_links_in_page(v_source_html)
-    #         for w in edges:
-    #             if w == goal:  # Search goal node, check for our goal and if we met it return our path
-    #                 prev[v].append(v)
-    #                 return prev[v]
-    #
-    #             if w not in visited:
-    #                 visited.add(w)
-    #                 S.put(w)
-    #                 prev[w].append(v)
-    #         count = count + 1
-    #     return None
 
 
 class DijkstrasProblem:
@@ -257,116 +182,19 @@ class DijkstrasProblem:
     # You should return the path from source to goal that minimizes the total cost. Assume cost > 0 for all edges.
     def dijkstras(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia", costFn=lambda x, y: len(y)):
 
-        # self.myqueue.empty()
-        #q = Queue.Queue()
         self.myqueue.queue.clear()
 
-        # if source == goal:
-        #     return [source, goal]
-
-        path = [source] # [source]
+        path = [source]
         found_path = find_path(self.internet, self.myqueue, source, goal, costFn, path)
 
-        # if found_path is None or (len(found_path) == 1 and found_path[0] == source):
-        #     return None
+        if found_path is None:
+            return None
 
         if found_path[0] != path[0]:
             path.extend(found_path)
 
         path.append(goal)
         return path  # if no path exists, return None
-
-    # distances[start] = 0
-    # vertices_to_explore = [(0, start)]
-    #
-    # while vertices_to_explore:
-    #     current_distance, current_vertex = heappop(vertices_to_explore)
-    #     for neighbor, edge_weight in graph[current_vertex]:
-    #         new_distance = current_distance + edge_weight
-    #         if new_distance < distances[neighbor]:
-    #             distances[neighbor] = new_distance
-    #             heappush(vertices_to_explore, (new_distance, neighbor))
-
-    # def _dijkstras(self, source, goal, cost_function):
-    #     if source == goal:  # if source and goal are the same return
-    #         return None
-    #
-    #     pq = PriorityQueue()
-    #
-    #     total_costs = {source: 0}
-    #     prev = defaultdict(list)  # store the previous nodes in the path
-    #
-    #     visited = {source}  # visited nodes set label root as visited
-    #     pq.put((0, self.increment(), source))  # # setting the start node cost to zero add the starting node to the priority queue
-    #
-    #     count = 0
-    #     while not pq.empty() or count < 2:  # until the queue is empty we continue processing
-    #         cost_new_smallest, _, new_smallest = pq.get()  # removes the smallest item from the queue
-    #         print("element popped off of min pq: ", new_smallest, " cost of element: ", cost_new_smallest)
-    #
-    #         if new_smallest == goal:  # Search goal node, check for our goal and if we met it return our path
-    #             print("found goal! ", goal)
-    #             return prev[new_smallest]
-    #
-    #         for neighbor in Parser.get_links_in_page(self.internet.get_page(new_smallest)):  # check on the neighbors
-    #             # if neighbor == goal:  # Search goal node, check for our goal and if we met it return our path
-    #             #     print("found goal! ", new_smallest, neighbor, prev[neighbor])
-    #             #     return prev[neighbor]
-    #             if neighbor not in visited:  # check if the node has been visited already
-    #                 edge_weight = cost_function(new_smallest, neighbor)
-    #                 alt = cost_new_smallest + edge_weight
-    #                 dist_neighbor = self.get_dist(neighbor, total_costs)
-    #                 # dist_neighbor = max(dist_neighbor, alt)
-    #                 # print("checking neighbor of ", neighbor, " with a cost of ", edge_weight, " alt dist ",
-    #                 #       alt, "dist_neighbor ", dist_neighbor)
-    #                 if alt < dist_neighbor or dist_neighbor == 0:
-    #                     # print("visiting neighbor ", neighbor)
-    #                     visited.add(neighbor)
-    #                     total_costs[neighbor] = alt
-    #                     prev[neighbor].append(new_smallest)
-    #                     print("adding the neighbor", neighbor, " to the min pq with cost of ", alt)
-    #                     pq.put((alt, self.increment(), neighbor))
-    #
-    #                 # pq_cost_neighbor_tuple = (edge_weight, self.increment(), neighbor)
-    #                 # pq.put(pq_cost_neighbor_tuple)
-    #                 #
-    #                 # cost_of_new_smallest = total_costs[new_smallest]
-    #                 # if not cost_of_new_smallest:
-    #                 #     cost_of_new_smallest = 0
-    #                 #
-    #                 # alt_path_distance = cost_of_new_smallest + edge_weight  # make a path containing the new path distance
-    #                 #
-    #                 # if neighbor not in total_costs.keys():
-    #                 #     total_costs[neighbor] = 0
-    #                 #
-    #                 # if alt_path_distance < total_costs[neighbor]:  # check if new path is better than existing
-    #                 #     total_costs[neighbor] = alt_path_distance  # updates the path length of the neighbor
-    #                 #     prev[neighbor].append(new_smallest)
-    #
-    #                 # if neighbor == goal:  # Search goal node, check for our goal and if we met it return our path
-    #                 #     print("found goal! ", new_smallest, neighbor, prev[new_smallest])
-    #                 #     return prev[new_smallest]
-    #                 # visited.add(neighbor)
-    #                 # pq_cost_neighbor_tuple = (cost_f_value, self.increment(), neighbor)
-    #                 # # if (w in expected_result):
-    #                 # pq.put(pq_cost_neighbor_tuple)
-    #
-    #         count = count + 1
-    #         # print("popped off the queue! ", v, count)
-    #         # if v == goal:  # Search goal node, check for our goal and if we met it return our path
-    #         #     prev[v].append(v)
-    #         #     return prev[v]
-    #         #
-    #         # # TODO - do something here before we
-    #
-    #     # sys.stdout.close()
-    #     return None
-    #
-    # def get_dist(self, neighbor, total_costs):
-    #     total_cost_neighbor = 0
-    #     if neighbor in total_costs:
-    #         total_cost_neighbor = total_costs[neighbor]
-    #     return total_cost_neighbor
 
 
 class WikiracerProblem:
