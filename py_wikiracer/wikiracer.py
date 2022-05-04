@@ -48,6 +48,7 @@ def backtrack_path(page_graph: defaultdict, prev_parent: dict, page):
     backwards_path_reversed = list(reversed(path_backwards))
     return backwards_path_reversed
 
+
 def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn, path: []):
     queue_input.queue.clear()
 
@@ -76,6 +77,7 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn,
                 queue_input.put((cost + cost_fn(page, neighbor), neighbor))
 
     return path
+
 
 class Parser:
 
@@ -137,8 +139,11 @@ class BFSProblem:
         dummy_cost_fn = lambda x, y: 1
         found_path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn, path)
 
-        # if path is None or (len(path) == 1 and path[0] == source):
-        #     return None
+        print("Found path is: ", found_path)
+
+        if found_path is None: #  or (len(found_path) == 1 and found_path[0] == source):
+            return None
+
         if found_path[0] != path[0]:
             path.extend(found_path)
 
@@ -190,8 +195,8 @@ class DFSProblem:
         path = [source]
 
         # path = self._dfs(source, goal)
-        dummyCostFn = lambda x, y: 1
-        found_path = find_path(self.internet, self.myqueue, source, goal, dummyCostFn, path)
+        dummy_cost_fn = lambda x, y: 1
+        found_path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn, path)
 
         # if found_path is None or (len(found_path) == 1 and found_path[0] == source):
         #     return None
