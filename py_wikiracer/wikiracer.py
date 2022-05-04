@@ -68,6 +68,7 @@ class Parser:
 class BFSProblem:
     def __init__(self):
         self.internet = Internet()
+        self.myqueue = Queue()  # use a simple FIFO queue here
 
     # Example in/outputs:
     #  bfs(source = "/wiki/Computer_science", goal = "/wiki/Computer_science") == ["/wiki/Computer_science"]
@@ -80,12 +81,19 @@ class BFSProblem:
     #  This applies for bfs, dfs, and dijkstra's.
     # Download a page with self.internet.get_page().
     def bfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
+        # if source == goal:
+        #     return [source, goal]
+
         path = [source]
 
-        path = self._bfs(source, goal)
+        # path = self._bfs(source, goal)
+        dummyCostFn = lambda x, y: 1
+        found_path = find_path(self.internet, self.myqueue, source, goal, dummyCostFn, path)
 
-        if path is None or (len(path) == 1 and path[0] == source):
-            return None
+        # if path is None or (len(path) == 1 and path[0] == source):
+        #     return None
+        if found_path[0] != path[0]:
+            path.extend(found_path)
 
         path.append(goal)
         return path  # if no path exists, return None
@@ -124,15 +132,28 @@ class BFSProblem:
 class DFSProblem:
     def __init__(self):
         self.internet = Internet()
+        self.myqueue = LifoQueue()
 
     # Links should be inserted into a stack as they are located in the page. Do not add things to the visited list until they are taken out of the stack.
     def dfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
+
+        # if source == goal:
+        #     return [source, goal]
+
         path = [source]
 
-        path = self._dfs(source, goal)
+        # path = self._dfs(source, goal)
+        dummyCostFn = lambda x, y: 1
+        found_path = find_path(self.internet, self.myqueue, source, goal, dummyCostFn, path)
 
-        if path is None or (len(path) == 1 and path[0] == source):
-            return None
+        # if found_path is None or (len(found_path) == 1 and found_path[0] == source):
+        #     return None
+
+        if found_path[0] != path[0]:
+            path.extend(found_path)
+
+        # if path is None or (len(path) == 1 and path[0] == source):
+        #     return None
 
         path.append(goal)
         return path  # if no path exists, return None
@@ -164,11 +185,64 @@ class DFSProblem:
             count = count + 1
         return None
 
+# TODO - move this to the top
+def backtrack_path(page_graph: defaultdict, prev_parent: dict, page):
+    current_ptr = page
+    path_backwards = [current_ptr]
+    PAGE_INDEX = 1
+    while current_ptr is not None:
+        if page_graph[current_ptr]:
+            smallest_parent = min(page_graph[current_ptr])[PAGE_INDEX]
+            if prev_parent[smallest_parent] is None:
+                break
+            next_parent = prev_parent[smallest_parent]
+            path_backwards.append(next_parent)
+            current_ptr = next_parent
+        else:
+            break
+
+    # reverse the backwards path to forwards now
+    backwards_path_reversed = list(reversed(path_backwards))
+    #print("backwards_path_reversed: ", backwards_path_reversed)
+    #path.extend(backwards_path_reversed)
+    return backwards_path_reversed
+
+# TODO - move this to the top
+def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn, path: []):
+    queue_input.queue.clear()
+
+    queue_input.put((0, source))
+    explored = set()
+
+    page_graph = defaultdict(list)
+    prev_parent = {source: None}
+
+    while not queue_input.empty():
+        cost, page = queue_input.get()
+        if page not in explored:
+            explored.add(page)
+            for neighbor in Parser.get_links_in_page(internet_obj.get_page(page)):
+                if neighbor == goal:
+                    path = backtrack_path(page_graph, prev_parent, page)
+                    return path
+
+                # keep track of the cost in the page graph
+                page_graph[neighbor].append((cost + cost_fn(page, neighbor), page))
+
+                # never reset the source node
+                if neighbor != source:
+                    prev_parent[neighbor] = page
+
+                queue_input.put((cost + cost_fn(page, neighbor), neighbor))
+
+    return path
+
 
 class DijkstrasProblem:
     def __init__(self):
         self.internet = Internet()
         self.count = 0
+        self.myqueue = PriorityQueue()
 
     def increment(self):
         temp_count = self.count
@@ -182,13 +256,22 @@ class DijkstrasProblem:
     #  to get the cost of a particular edge.
     # You should return the path from source to goal that minimizes the total cost. Assume cost > 0 for all edges.
     def dijkstras(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia", costFn=lambda x, y: len(y)):
-        path = [source]
-        # path = self._dijkstras(source, goal, costFn)
-        path = self._find_path(source, goal, costFn, path)
-        print("THIS IS THE RETURNED PATH = ", path)
 
-        if path is None or (len(path) == 1 and path[0] == source):
-            return None
+        # self.myqueue.empty()
+        #q = Queue.Queue()
+        self.myqueue.queue.clear()
+
+        # if source == goal:
+        #     return [source, goal]
+
+        path = [source] # [source]
+        found_path = find_path(self.internet, self.myqueue, source, goal, costFn, path)
+
+        # if found_path is None or (len(found_path) == 1 and found_path[0] == source):
+        #     return None
+
+        if found_path[0] != path[0]:
+            path.extend(found_path)
 
         path.append(goal)
         return path  # if no path exists, return None
@@ -284,55 +367,6 @@ class DijkstrasProblem:
         if neighbor in total_costs:
             total_cost_neighbor = total_costs[neighbor]
         return total_cost_neighbor
-
-    def _find_path(self, source, goal, cost_fn, path: []):
-        pq : Queue = PriorityQueue()
-        pq.put((0, source))
-        explored = set()
-
-        # cost_table = dict()
-        page_graph = defaultdict(list)
-        prev_parent = dict()
-        prev_parent[source] = None
-
-        while not pq.empty():
-            cost, page = pq.get()
-            if page not in explored:
-                explored.add(page)
-                for neighbor in Parser.get_links_in_page(self.internet.get_page(page)):
-                    if neighbor == goal:
-                        path = self.backtrack_path(page_graph, prev_parent, page, path)
-                        return path
-
-                    # keep track of the cost in the page graph
-                    page_graph[neighbor].append((cost + cost_fn(page, neighbor), page))
-
-                    # never reset the source node
-                    if neighbor != source:
-                        prev_parent[neighbor] = page
-
-                    pq.put((cost + cost_fn(page, neighbor), neighbor))
-
-        return path
-
-    def backtrack_path(self, page_graph: defaultdict, prev_parent: dict, page, path: []):
-        current_ptr = page
-        path_backwards = [current_ptr]
-        PAGE_INDEX = 1
-        while current_ptr is not None:
-            smallest_parent = min(page_graph[current_ptr])[PAGE_INDEX]
-            if prev_parent[smallest_parent] is None:
-                break
-            next_parent = prev_parent[smallest_parent]
-            path_backwards.append(next_parent)
-            current_ptr = next_parent
-
-        # reverse the backwards path to forwards now
-        path.extend(list(reversed(path_backwards)))
-        print("final final final ", path)
-        return path
-
-
 
 
 class WikiracerProblem:
