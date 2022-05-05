@@ -105,7 +105,7 @@ def test_none_on_fail():
     assert dfs.internet.requests == ["/wiki/Calvin_Li"]
     assert dij.internet.requests == ["/wiki/Calvin_Li"]
 
-@unittest.skip('skipped test')
+# @unittest.skip('skipped test')
 def test_dfs_complex():
     """
     A complex DFS example to test your searching algorithm.

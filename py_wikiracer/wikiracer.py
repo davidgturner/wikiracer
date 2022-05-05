@@ -26,24 +26,75 @@ def exclude_links(x: str):
     else:
         return True
 
+
 def backtrack_path(page_graph: defaultdict, prev_parent: dict, page):
+    print("starting a backtrack path with this ", page, prev_parent, page_graph)
+    # return []
+
     current_ptr = page
     path_backwards = [current_ptr]
     page_index = 1
+
+    # this is looking for a trip back to the source node which should be null for parent.
+    # this loop is the min distance to lead back to the source node
     while current_ptr is not None:
-        if page_graph[current_ptr]:
-            smallest_parent = min(page_graph[current_ptr])[page_index]
-            if prev_parent[smallest_parent] is None:
-                break
+        pointers_backwards_from_current_node = page_graph[current_ptr]
+
+        filter_use = defaultdict(list) # deepCopy(pointers_backwards_from_current_node)
+        for p in pointers_backwards_from_current_node:
+            text_link_from_tuple_element = p[1]
+            if current_ptr in page_graph[text_link_from_tuple_element]:
+                filter_use[current_ptr].append(p)
+
+        print("original JAM ", page_graph["/wiki/Jam!"])
+        print("original northern news ", page_graph["/wiki/Northern_News"])
+
+        print('/wiki/Jam! prev parent ', prev_parent['/wiki/Jam!'])
+        print('/wiki/Northern_News prev parent ', prev_parent['/wiki/Northern_News'])
+        print('/wiki/Dose_(magazine) prev parent ', prev_parent['/wiki/Dose_(magazine)'])
+
+        print("Filtered down entry ", filter_use["/wiki/Jam!"])
+        return []
+        # pointers_backwards = page_graph[current_ptr]  # the graph entry lets say for /wiki/Jam! and it's list of tuples
+        # filtered_pointers_backwards = defaultdict(list)  # the filtered version that just has the links that lead to pointer backwards
+        #
+        # for element in pointers_backwards:  ## this is canwest, northern news, etc. some of which do not lead to jam
+        #     if page_graph[element]
+        #     # pointers_backwards[element]
+        #     # if element in pointers_backwards[current_ptr]:
+        #         filtered_pointers_backwards[element] = pointers_backwards[element]
+        #
+        # if [page_index] is not None:  #
+        smallest_parent = min(filter_use[current_ptr])[page_index]
+        print("smallest parent back ", smallest_parent, " page graph of ", filter_use[current_ptr])
+        if prev_parent[smallest_parent] is None:
+            break
+        else:
             next_parent = prev_parent[smallest_parent]
             path_backwards.append(next_parent)
-            current_ptr = next_parent
-        else:
-            break
+
+        current_ptr = next_parent
 
     backwards_path_reversed = list(reversed(path_backwards))  # reverse the backwards path to forwards now
     return backwards_path_reversed
 
+def backtrack_path2(page_graph: defaultdict, prev_parent: dict, page, source):
+    print("starting a backtrack path with this ", page, prev_parent, page_graph)
+
+    current = page
+    path_backwards = [current]
+    while current is not None or source == current:
+        first_prev = prev_parent[current]
+        if first_prev is None:
+            break
+        if first_prev is not None and first_prev != source:
+            path_backwards.append(first_prev)
+            print("adding next next prev parent - ", first_prev)
+        current = first_prev
+
+    backwards_path_reversed = list(reversed(path_backwards))  # reverse the backwards path to forwards now
+    print("the returned list out ", backwards_path_reversed)
+    return backwards_path_reversed
 
 def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn, path: []):
     queue_input.queue.clear()
@@ -56,18 +107,26 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn,
 
     while not queue_input.empty():
         cost, page = queue_input.get()
+        print("cost = ", cost, " page off queue= ", page)
         if page not in explored:
             explored.add(page)
-            for neighbor in Parser.get_links_in_page(internet_obj.get_page(page)):
+
+            links_page = Parser.get_links_in_page(internet_obj.get_page(page))
+            # links_page.remove(page)
+            for neighbor in links_page:
+                if neighbor == page:
+                    continue
+                print("processing neighbor = ", neighbor)
                 if neighbor == goal:
-                    path = backtrack_path(page_graph, prev_parent, page)
+                    path = backtrack_path2(page_graph, prev_parent, page, source)
                     return path
 
                 # keep track of the cost in the page graph
                 page_graph[neighbor].append((cost + cost_fn(page, neighbor), page))
 
                 # never reset the source node
-                if neighbor != source:
+                if neighbor not in (source, page) and neighbor not in explored:
+                #if neighbor != source:
                     prev_parent[neighbor] = page
 
                 queue_input.put((cost + cost_fn(page, neighbor), neighbor))
@@ -160,6 +219,8 @@ class DFSProblem:
             path.extend(found_path)
 
         path.append(goal)
+
+        print("RIGHT BEFORE THE RETURN DFS!!!!!! ", path)
         return path  # if no path exists, return None
 
 

@@ -14,7 +14,7 @@ internet = Internet()
 #     print ("RE1: Invalid char detected. ")
 
 
-source = "/wiki/Main_Page"  # "/wiki/Calvin_Li" # "/wiki/Nashville,_Tennessee" # "/wiki/Athlon_Sports"  # "/wiki/Fiji"
+source = "/wiki/Northern_News"  # "/wiki/Calvin_Li" # "/wiki/Nashville,_Tennessee" # "/wiki/Athlon_Sports"  # "/wiki/Fiji"
 text_test = get_text_portion(source)
 
 # print(text_test)
