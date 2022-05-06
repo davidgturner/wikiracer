@@ -78,25 +78,24 @@ def backtrack_path(page_graph: defaultdict, prev_parent: dict, page):
     backwards_path_reversed = list(reversed(path_backwards))  # reverse the backwards path to forwards now
     return backwards_path_reversed
 
-def backtrack_path2(page_graph: defaultdict, prev_parent: dict, page, source):
+def backtrack_path2(page_graph: defaultdict, prev_parent: dict, cost_dist: dict, page, source):
     print("starting a backtrack path with this ", page, prev_parent, page_graph)
-
     current = page
     path_backwards = [current]
-    while current is not None or source == current:
-        first_prev = prev_parent[current]
-        if first_prev is None:
-            break
-        if first_prev is not None and first_prev != source:
-            path_backwards.append(first_prev)
-            print("adding next next prev parent - ", first_prev)
-        current = first_prev
+    while current is not None:
+        if current in prev_parent:
+            first_prev = prev_parent[current]
+            if first_prev is not None and first_prev != source:
+                path_backwards.append(first_prev)
+                print("adding next next prev parent - ", first_prev)
+            current = first_prev
 
     backwards_path_reversed = list(reversed(path_backwards))  # reverse the backwards path to forwards now
     print("the returned list out ", backwards_path_reversed)
     return backwards_path_reversed
 
-def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn, path: []):
+
+def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn):
     queue_input.queue.clear()
 
     queue_input.put((0, source))
@@ -104,6 +103,7 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn,
 
     page_graph = defaultdict(list)
     prev_parent = {source: None}
+    dist = {source: 0}
 
     while not queue_input.empty():
         cost, page = queue_input.get()
@@ -118,18 +118,24 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn,
                     continue
                 print("processing neighbor = ", neighbor)
                 if neighbor == goal:
-                    path = backtrack_path2(page_graph, prev_parent, page, source)
+                    path = backtrack_path2(page_graph, prev_parent, dist, page, source)
                     return path
 
-                # keep track of the cost in the page graph
-                page_graph[neighbor].append((cost + cost_fn(page, neighbor), page))
+                alt_cost = cost + cost_fn(page, neighbor)
+                cost_neighbor_tuple = (alt_cost, neighbor)
+                queue_input.put(cost_neighbor_tuple)
 
-                # never reset the source node
-                if neighbor not in (source, page) and neighbor not in explored:
-                #if neighbor != source:
-                    prev_parent[neighbor] = page
+                # keep track of the page graph
+                page_graph[neighbor].append(cost_neighbor_tuple)
 
-                queue_input.put((cost + cost_fn(page, neighbor), neighbor))
+                # never reset the source node and don't add neighbor if already explored
+                if neighbor not in dist:
+                    dist[neighbor]= 0
+
+                if alt_cost <= dist[neighbor]:
+                    if neighbor not in (source, page) and neighbor not in explored:
+                        dist[neighbor] = alt_cost
+                        prev_parent[neighbor] = page
 
     return None  # return None since we didn't find a path
 
@@ -187,7 +193,7 @@ class BFSProblem:
         path = [source]
 
         dummy_cost_fn = lambda x, y: 1
-        found_path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn, path)
+        found_path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn)
 
         if found_path is None:
             return None
@@ -210,7 +216,7 @@ class DFSProblem:
         path = [source]
 
         dummy_cost_fn = lambda x, y: 1
-        found_path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn, path)
+        found_path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn)
 
         if found_path is None:
             return None
@@ -246,7 +252,7 @@ class DijkstrasProblem:
         self.myqueue.queue.clear()
 
         path = [source]
-        found_path = find_path(self.internet, self.myqueue, source, goal, costFn, path)
+        found_path = find_path(self.internet, self.myqueue, source, goal, costFn)
 
         if found_path is None:
             return None

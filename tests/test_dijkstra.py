@@ -19,7 +19,7 @@ class DijkstraTests(unittest.TestCase):
         expected_result = ['/wiki/Calvin_Li', '/wiki/Main_Page', '/wiki/Wikipedia']
         dijkstra_path = dijk.dijkstras(source="/wiki/Calvin_Li", goal="/wiki/Wikipedia", costFn=c)
         print(dijkstra_path)
-        assert expected_result == dijkstra_path
+        self.assertEqual(expected_result, dijkstra_path)
 
     # this tests dijkstras with a cost function of 1 which should behave exactly like Dijkstras
     # @unittest.skip('skipped test')
