@@ -94,6 +94,14 @@ def backtrack_path2(page_graph: defaultdict, prev_parent: dict, cost_dist: dict,
     print("the returned list out ", backwards_path_reversed)
     return backwards_path_reversed
 
+def backtrack_path3(source, goal, prev_parent, path_backwards):
+    if source == goal or goal is None:
+        path_backwards.append(source)
+    else:
+        backtrack_path3(source, prev_parent[goal], prev_parent, path_backwards)
+        path_backwards.append(goal)
+    return path_backwards
+
 
 def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn):
     queue_input.queue.clear()
@@ -118,7 +126,10 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn)
                     continue
                 print("processing neighbor = ", neighbor)
                 if neighbor == goal:
-                    path = backtrack_path2(page_graph, prev_parent, dist, page, source)
+                    # path = backtrack_path2(page_graph, prev_parent, dist, page, source)
+                    prev_parent[neighbor] = page
+                    path = backtrack_path3(source, goal, prev_parent, [])
+                    print("final path found!!! ", path)
                     return path
 
                 alt_cost = cost + cost_fn(page, neighbor)
@@ -130,7 +141,7 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn)
 
                 # never reset the source node and don't add neighbor if already explored
                 if neighbor not in dist:
-                    dist[neighbor]= 0
+                    dist[neighbor] = 0
 
                 if alt_cost <= dist[neighbor]:
                     if neighbor not in (source, page) and neighbor not in explored:
