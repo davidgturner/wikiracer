@@ -3,8 +3,12 @@ from py_wikiracer.wikiracer import DijkstrasProblem, BFSProblem, DFSProblem, Wik
 # source = "/wiki/Calvin_Li"
 # goal = "/wiki/Wikipedia"
 
-source = "/wiki/Calvin_Li"
-goal = "/wiki/Quebecor"
+# source = "/wiki/Calvin_Li"
+# goal = "/wiki/Quebecor"
+
+source =  "/wiki/Computer_science"
+goal = "/wiki/Richard_Soley"
+
 
 # source = "/wiki/ASDF"
 # goal = "/wiki/ASDF"
