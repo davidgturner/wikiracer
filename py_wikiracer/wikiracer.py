@@ -57,9 +57,8 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn)
     queue_input.put((0, source))
     explored = set()
 
-    page_graph = defaultdict(list)
-    prev_parent = {source: None}
-    dist = {source: 0}
+    previous_page_map = {source: None}
+    page_distance_cost = {source: 0}
 
     while not queue_input.empty():
         cost, page = queue_input.get()
@@ -67,33 +66,29 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn)
             explored.add(page)
             for neighbor in Parser.get_links_in_page(internet_obj.get_page(page)):
                 if neighbor == goal:
-                    p = backtrack_path(source, page, prev_parent)
+                    p = backtrack_path(source, page, previous_page_map)
                     return p
 
                 if cost_fn(page, neighbor) is None:
                     queue_input.put((None, neighbor))
 
                     if neighbor not in (source, page) and neighbor not in explored:
-                        prev_parent[neighbor] = page
+                        previous_page_map[neighbor] = page
                 else:
                     alt_cost = cost + cost_fn(page, neighbor)
                     cost_neighbor_tuple = (alt_cost, neighbor)
                     queue_input.put(cost_neighbor_tuple)
 
-                    # keep track of the cost in the page graph
-                    # this page graph isn't need for function, but could be good for debugging / troubleshooting
-                    page_graph[neighbor].append((cost + cost_fn(page, neighbor), page))
-
                     # never reset the source node and also never add a previous pointer back to itself
-                    if neighbor not in dist:
+                    if neighbor not in page_distance_cost:
                         if neighbor not in (source, page) and neighbor not in explored:
-                            dist[neighbor] = alt_cost
-                            prev_parent[neighbor] = page
+                            page_distance_cost[neighbor] = alt_cost
+                            previous_page_map[neighbor] = page
                     else:
-                        if alt_cost <= dist[neighbor]:
+                        if alt_cost <= page_distance_cost[neighbor]:
                             if neighbor not in (source, page) and neighbor not in explored:
-                                dist[neighbor] = alt_cost
-                                prev_parent[neighbor] = page
+                                page_distance_cost[neighbor] = alt_cost
+                                previous_page_map[neighbor] = page
 
     return None  # return None since we didn't find a path
 
