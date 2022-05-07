@@ -1,5 +1,5 @@
 from collections import defaultdict
-from queue import LifoQueue, Queue, PriorityQueue, SimpleQueue
+from queue import Queue, LifoQueue, PriorityQueue
 
 from py_wikiracer.internet import Internet
 from typing import List
@@ -27,38 +27,25 @@ def exclude_links(x: str):
         return True
 
 
-def backpedal(source, target, prev_parent: dict):
-    page = target
-    back_path = [target]
+def backtrack_path(source, goal, prev_parent: dict):
+    page = goal
+    backwards_path = [goal]
     path = []
     while page != source:
-        back_path.append(prev_parent[page])
+        backwards_path.append(prev_parent[page])
         page = prev_parent[page]
 
-    for i in range(len(back_path)):
-        path.append(back_path[-i - 1])
+    for i in range(len(backwards_path)):
+        path.append(backwards_path[-i - 1])
     return path
-
-def backtrack_path(page_graph: defaultdict, prev_parent: dict, page):
-    current_ptr = page
-    path_backwards = [current_ptr]
-    page_index = 1
-    while current_ptr is not None:
-        if page_graph[current_ptr]:
-            smallest_parent = min(page_graph[current_ptr])[page_index]
-            if prev_parent[smallest_parent] is None:
-                break
-            next_parent = prev_parent[smallest_parent]
-            path_backwards.append(next_parent)
-            current_ptr = next_parent
-        else:
-            break
-
-    backwards_path_reversed = list(reversed(path_backwards))  # reverse the backwards path to forwards now
-    return backwards_path_reversed
 
 
 def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn):
+    """
+    a generic function that can be used for BFS, BFS, Dijkstra, etc.
+    passes in an internet object, generic queue (which is be a FIFO, LIFO, or Priority queue) along with it's
+    source, goal and cost function (if applicable).
+    """
     queue_input.queue.clear()
 
     queue_input.put((0, source))
@@ -74,8 +61,7 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn)
             explored.add(page)
             for neighbor in Parser.get_links_in_page(internet_obj.get_page(page)):
                 if neighbor == goal:
-                    # path = backtrack_path(page_graph, prev_parent, page)
-                    p = backpedal(source, page, prev_parent)
+                    p = backtrack_path(source, page, prev_parent)
                     return p
 
                 if cost_fn(page, neighbor) is None:
@@ -156,20 +142,11 @@ class BFSProblem:
     #  This applies for bfs, dfs, and dijkstra's.
     # Download a page with self.internet.get_page().
     def bfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
-        # path = [source]
-
         dummy_cost_fn = lambda x, y: 1
         path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn)
 
-        print("found path = ", path)
         if path is None:
             return None
-
-        # if found_path is None:
-        #     return None
-        #
-        # if found_path[0] != path[0]:
-        #     path.extend(found_path)
 
         path.append(goal)
         return path  # if no path exists, return None
@@ -182,21 +159,11 @@ class DFSProblem:
 
     # Links should be inserted into a stack as they are located in the page. Do not add things to the visited list until they are taken out of the stack.
     def dfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
-
-        # path = [source]
-
         dummy_cost_fn = lambda x, y: None
         path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn)
 
-        print("found path = ", path)
         if path is None:
             return None
-
-        # if found_path is None:
-        #     return None
-        #
-        # if found_path is not None and found_path[0] != path[0]:
-        #     path.extend(found_path)
 
         path.append(goal)
         return path  # if no path exists, return None
@@ -208,11 +175,6 @@ class DijkstrasProblem:
         self.count = 0
         self.myqueue = PriorityQueue()
 
-    def increment(self):
-        temp_count = self.count
-        self.count = self.count + 1
-        return temp_count
-
     # Links should be inserted into the heap as they are located in the page.
     # By default, the cost of going to a link is the length of a particular destination link's name. For instance,
     #  if we consider /wiki/a -> /wiki/ab, then the default cost function will have a value of 8.
@@ -220,21 +182,12 @@ class DijkstrasProblem:
     #  to get the cost of a particular edge.
     # You should return the path from source to goal that minimizes the total cost. Assume cost > 0 for all edges.
     def dijkstras(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia", costFn=lambda x, y: len(y)):
-
         self.myqueue.queue.clear()
 
-        # path = [source]
         path = find_path(self.internet, self.myqueue, source, goal, costFn)
 
-        print("found path = ", path)
         if path is None:
             return None
-
-        # if found_path[0] != path[0]:
-        #     print("exnteding path")
-        #path.extend(found_path)
-        # else:
-        #     print("not extending path")
 
         path.append(goal)
         return path  # if no path exists, return None

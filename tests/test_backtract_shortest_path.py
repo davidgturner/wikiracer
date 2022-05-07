@@ -1,6 +1,6 @@
 import unittest
 
-from py_wikiracer.wikiracer import backpedal
+from py_wikiracer.wikiracer import backtrack_path
 
 
 class BacktrackTest(unittest.TestCase):
@@ -41,7 +41,7 @@ class BacktrackTest(unittest.TestCase):
 
         prev["Q"] = "M"
 
-        p = backpedal("A","Q", prev)
+        p = backtrack_path("A", "Q", prev)
 
         self.assertEqual(["A", "C", "M", "Q"], p)
 
