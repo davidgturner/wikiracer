@@ -64,7 +64,6 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn)
 
     while not queue_input.empty():
         cost, page = queue_input.get()
-        print("cost and page off the queue = ", cost, page)
         if page not in explored:
             explored.add(page)
             for neighbor in Parser.get_links_in_page(internet_obj.get_page(page)):
@@ -218,36 +217,31 @@ class WikiracerProblem:
         self.myqueue.queue.clear()
 
         self.populate_goal_links(goal)
+
         h_score_function = lambda x, y: self.h_score(x, y, source, goal)
+
         path = find_path(self.internet, self.myqueue, source, goal, h_score_function)
         path = finalize_path(path, source, goal)
-        # path.append(goal)
 
-        print("Path = ", path)
-        print("Path Length = ", len(path))
-
-        print("Page Downloads = ", self.internet.requests)
-        print("# of Page Downloads / Lengths = ", len(self.internet.requests))
+        # print("Path = ", path)
+        # print("Path Length = ", len(path))
+        #
+        # print("Page Downloads = ", self.internet.requests)
+        # print("# of Page Downloads / Lengths = ", len(self.internet.requests))
 
         return path  # if no path exists, return None
 
     def build_ignore_pages_set(self):
-        # TODO - need to look at 10-20 random pages and find the intersection set among them all
         common_page_ignore_power_set = set()
         RANDOM_PAGES_TO_INSPECT = 5
         for i in range(0, RANDOM_PAGES_TO_INSPECT):
             rand_page = self.internet.get_random()
             page_links_list = Parser.get_links_in_page(rand_page)
-            for p in page_links_list:
-                print(p)
             page_links_set = set(page_links_list)
             if len(common_page_ignore_power_set) == 0:  # first time around we set it to the first page links set
                 common_page_ignore_power_set = page_links_set
             else:
                 common_page_ignore_power_set = common_page_ignore_power_set.intersection(page_links_set)
-        # print("The common page links to ignore out:")
-        # print(common_page_ignore_power_set)
-        # print("===============================")
         self.ignore_pages = common_page_ignore_power_set
 
     def populate_goal_links(self, goal):
@@ -255,11 +249,9 @@ class WikiracerProblem:
         self.goal_page_neighbor_links = Parser.get_links_in_page(goal_page_html)
 
     def h_score(self, current_page, neighbor, source, goal):
-        # ignore_pages score? - give it 25% weight
-        random_ignore_pages = 0.0
         if neighbor in self.ignore_pages or neighbor in self.ignore_pages:
             random_ignore_pages = 1.0
-            return 100000
+            return 100000   # return a really high score so it's pushed to end of the queue
         else:
             random_ignore_pages = 0.0
 
@@ -269,45 +261,28 @@ class WikiracerProblem:
         else:
             goal_neighbor_score = 0.0
 
-        # sequence matcher - give it 60% weight
+        # sequence matcher - give it 50% weight
         seq = SequenceMatcher(a=neighbor, b=goal)
-        seq_matcher_score = seq.ratio()  # seq.quick_ratio() # seq.ratio()
-        jaccard_similarity = self.jaccard(neighbor, goal)
-        link_string_similarity = (seq_matcher_score + jaccard_similarity) / 2.0
+        seq_matcher_score = seq.ratio()
+        # jaccard_similarity = self.jaccard(neighbor, goal)
+        link_string_similarity = seq_matcher_score # (seq_matcher_score + jaccard_similarity) / 2.0
 
         if random_ignore_pages == 1.0:
             similarity_score = 1.0
         else:
             similarity_score = (goal_neighbor_score * 0.50) + (link_string_similarity * 0.50)
 
-        #if random_ignore_pages == 1.0:
-        #    return 100000
-        #else:
-        #    overall_score = (link_string_similarity * 0.80) + (goal_neighbor_score * 0.15) - (random_ignore_pages * 0.05)
-        # overall_score = goal_neighbor_score # link_string_similarity # link_string_similarity
-
-        #overall_score = 1.0 - overall_score
-
-        # overall_score = ceil(overall_score * 1000)
-
-        # if random_ignore_pages == 1.0:
-        #     overall_score = overall_score + 500
-        #
-        # if goal_neighbor_score == 1.0:
-        #     overall_score = overall_score - 200
-
-        # final_return = max(0, overall_score)
-        # print("final return score ", final_return)
+        # convert the sim score to a cost / distance
         # this is because the more similar something is we want that first off the queue so need to reverse it
-
         overall_score = 1.0 - similarity_score
+        return 100.00 * (max(0.0, float(overall_score)))  # use max to make sure it always stays above zero
 
-        # return max(0, int(overall_score))  # use max to make sure it always stays above zero
-        return 100.00 * (max(0.0, float(overall_score)))
-
-    def jaccard(self, source_page, current_page):
-        list_source_page_chars = list(source_page) # list of source page characters
-        list_current_page_chars = list(current_page)  # list of current page characters
+    def jaccard(self, page1, page2):
+        """
+        computes a jaccard similarity on the characters of the two page strings
+        """
+        list_source_page_chars = list(page1) # list of source page characters
+        list_current_page_chars = list(page2)  # list of current page characters
         intersection = len(list(set(list_source_page_chars).intersection(list_current_page_chars)))
         union = (len(list_source_page_chars) + len(list_current_page_chars)) - intersection
         return float(intersection) / union
