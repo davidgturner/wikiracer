@@ -1,5 +1,6 @@
 from collections import defaultdict
 from difflib import SequenceMatcher
+from math import ceil
 from queue import Queue, LifoQueue, PriorityQueue
 
 from py_wikiracer.internet import Internet
@@ -216,10 +217,8 @@ class WikiracerProblem:
         # path = [source]
         self.myqueue.queue.clear()
 
-        goal_page_html = self.internet.get_page(goal)
-        self.goal_page_neighbor_links = Parser.get_links_in_page(goal_page_html)
-
-        h_score_function = lambda x, y: self.h_score(x, y)
+        self.populate_goal_links(goal)
+        h_score_function = lambda x, y: self.h_score(x, y, source, goal)
         path = find_path(self.internet, self.myqueue, source, goal, h_score_function)
         path = finalize_path(path, source, goal)
         # path.append(goal)
@@ -251,34 +250,60 @@ class WikiracerProblem:
         # print("===============================")
         self.ignore_pages = common_page_ignore_power_set
 
-    def h_score(self, source_page, current_page):
+    def populate_goal_links(self, goal):
+        goal_page_html = self.internet.get_page(goal)
+        self.goal_page_neighbor_links = Parser.get_links_in_page(goal_page_html)
+
+    def h_score(self, current_page, neighbor, source, goal):
         # ignore_pages score? - give it 25% weight
         random_ignore_pages = 0.0
-        if source_page in self.ignore_pages or current_page in self.ignore_pages:
+        if neighbor in self.ignore_pages or neighbor in self.ignore_pages:
             random_ignore_pages = 1.0
+            return 100000
         else:
             random_ignore_pages = 0.0
 
         # is a 1-2 step away goal page neighbors? - give it 25% weight
-        goal_neighbor_score = 0.0
-        if current_page in self.goal_page_neighbor_links:
-            goal_neighbor_score = 1.0
+        if self.goal_page_neighbor_links and neighbor in self.goal_page_neighbor_links:
+            goal_neighbor_score = 0.99
         else:
             goal_neighbor_score = 0.0
 
         # sequence matcher - give it 60% weight
-        seq = SequenceMatcher(a =source_page, b=current_page)
-        seq_matcher_score = seq.ratio() # seq.quick_ratio() # seq.ratio()
-        jaccard_similarity = self.jaccard(source_page, current_page)
+        seq = SequenceMatcher(a=neighbor, b=goal)
+        seq_matcher_score = seq.ratio()  # seq.quick_ratio() # seq.ratio()
+        jaccard_similarity = self.jaccard(neighbor, goal)
         link_string_similarity = (seq_matcher_score + jaccard_similarity) / 2.0
 
         if random_ignore_pages == 1.0:
-            return 1.0
+            similarity_score = 1.0
         else:
-            overall_score = (link_string_similarity * 0.80) + (goal_neighbor_score * 0.15) - (random_ignore_pages * 0.05)
+            similarity_score = (goal_neighbor_score * 0.50) + (link_string_similarity * 0.50)
 
+        #if random_ignore_pages == 1.0:
+        #    return 100000
+        #else:
+        #    overall_score = (link_string_similarity * 0.80) + (goal_neighbor_score * 0.15) - (random_ignore_pages * 0.05)
+        # overall_score = goal_neighbor_score # link_string_similarity # link_string_similarity
+
+        #overall_score = 1.0 - overall_score
+
+        # overall_score = ceil(overall_score * 1000)
+
+        # if random_ignore_pages == 1.0:
+        #     overall_score = overall_score + 500
+        #
+        # if goal_neighbor_score == 1.0:
+        #     overall_score = overall_score - 200
+
+        # final_return = max(0, overall_score)
+        # print("final return score ", final_return)
         # this is because the more similar something is we want that first off the queue so need to reverse it
-        return 1.0 - overall_score
+
+        overall_score = 1.0 - similarity_score
+
+        # return max(0, int(overall_score))  # use max to make sure it always stays above zero
+        return 100.00 * (max(0.0, float(overall_score)))
 
     def jaccard(self, source_page, current_page):
         list_source_page_chars = list(source_page) # list of source page characters
