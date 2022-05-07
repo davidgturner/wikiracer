@@ -1,5 +1,5 @@
 from collections import defaultdict
-from queue import LifoQueue, Queue, PriorityQueue
+from queue import Queue, LifoQueue, PriorityQueue
 
 from py_wikiracer.internet import Internet
 from typing import List
@@ -26,33 +26,39 @@ def exclude_links(x: str):
     else:
         return True
 
-def backtrack_path(page_graph: defaultdict, prev_parent: dict, page):
-    current_ptr = page
-    path_backwards = [current_ptr]
-    page_index = 1
-    while current_ptr is not None:
-        if page_graph[current_ptr]:
-            smallest_parent = min(page_graph[current_ptr])[page_index]
-            if prev_parent[smallest_parent] is None:
-                break
-            next_parent = prev_parent[smallest_parent]
-            path_backwards.append(next_parent)
-            current_ptr = next_parent
-        else:
-            break
 
-    backwards_path_reversed = list(reversed(path_backwards))  # reverse the backwards path to forwards now
-    return backwards_path_reversed
+def backtrack_path(source, goal, prev: dict):
+    """
+    backtrack the path using the prev pointers created during the path finding
+    """
+    page = goal
+    backwards_path = [goal]
+    path = []
+    while page != source:
+        backwards_path.append(prev[page])
+        page = prev[page]
+
+    # pop from the stack until it's emptied, reversing the backwards path list to get the forward path
+    while len(backwards_path) > 0:
+        path_item = backwards_path.pop()
+        path.append(path_item)
+
+    return path
 
 
-def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn, path: []):
+def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn):
+    """
+    a generic function that can be used for BFS, BFS, Dijkstra, etc.
+    passes in an internet object, generic queue (which is be a FIFO, LIFO, or Priority queue) along with it's
+    source, goal and cost function (if applicable).
+    """
     queue_input.queue.clear()
 
     queue_input.put((0, source))
     explored = set()
 
-    page_graph = defaultdict(list)
-    prev_parent = {source: None}
+    previous_page_map = {source: None}
+    page_distance_cost = {source: 0}
 
     while not queue_input.empty():
         cost, page = queue_input.get()
@@ -60,20 +66,43 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn,
             explored.add(page)
             for neighbor in Parser.get_links_in_page(internet_obj.get_page(page)):
                 if neighbor == goal:
-                    path = backtrack_path(page_graph, prev_parent, page)
-                    return path
+                    p = backtrack_path(source, page, previous_page_map)
+                    return p
 
-                # keep track of the cost in the page graph
-                page_graph[neighbor].append((cost + cost_fn(page, neighbor), page))
+                if cost_fn(page, neighbor) is None:
+                    queue_input.put((None, neighbor))
 
-                # never reset the source node
-                if neighbor != source:
-                    prev_parent[neighbor] = page
+                    if neighbor not in (source, page) and neighbor not in explored:
+                        previous_page_map[neighbor] = page
+                else:
+                    alt_cost = cost + cost_fn(page, neighbor)
+                    cost_neighbor_tuple = (alt_cost, neighbor)
+                    queue_input.put(cost_neighbor_tuple)
 
-                queue_input.put((cost + cost_fn(page, neighbor), neighbor))
+                    # never reset the source node and also never add a previous pointer back to itself
+                    if neighbor not in page_distance_cost:
+                        if neighbor not in (source, page) and neighbor not in explored:
+                            page_distance_cost[neighbor] = alt_cost
+                            previous_page_map[neighbor] = page
+                    else:
+                        if alt_cost <= page_distance_cost[neighbor]:
+                            if neighbor not in (source, page) and neighbor not in explored:
+                                page_distance_cost[neighbor] = alt_cost
+                                previous_page_map[neighbor] = page
 
     return None  # return None since we didn't find a path
 
+def finalize_path(path, source, goal):
+    """
+    does checks and balances to make sure path is correct (with edge cases) adding the goal page node, etc.
+    """
+    if path is None:
+        return None
+
+    # add the goal page node
+    path.append(goal)
+
+    return path
 
 class Parser:
 
@@ -115,7 +144,7 @@ class BFSProblem:
         self.myqueue = Queue()  # use a simple FIFO queue here
 
     # Example in/outputs:
-    #  bfs(source = "/wiki/Computer_science", goal = "/wiki/Computer_science") == ["/wiki/Computer_science"]
+    #  bfs(source = "/wiki/Computer_science", goal = "/wiki/Computer_science") == ["/wiki/Computer_science", "/wiki/Computer_science"]
     #  bfs(source = "/wiki/Computer_science", goal = "/wiki/Computation") == ["/wiki/Computer_science", "/wiki/Computation"]
     # Find more in the test case file.
 
@@ -125,20 +154,10 @@ class BFSProblem:
     #  This applies for bfs, dfs, and dijkstra's.
     # Download a page with self.internet.get_page().
     def bfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
-        path = [source]
-
         dummy_cost_fn = lambda x, y: 1
-        found_path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn, path)
-
-        if found_path is None:
-            return None
-
-        if found_path[0] != path[0]:
-            path.extend(found_path)
-
-        path.append(goal)
+        path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn)
+        path = finalize_path(path, source, goal)
         return path  # if no path exists, return None
-
 
 class DFSProblem:
     def __init__(self):
@@ -147,19 +166,9 @@ class DFSProblem:
 
     # Links should be inserted into a stack as they are located in the page. Do not add things to the visited list until they are taken out of the stack.
     def dfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
-
-        path = [source]
-
-        dummy_cost_fn = lambda x, y: 1
-        found_path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn, path)
-
-        if found_path is None:
-            return None
-
-        if found_path is not None and found_path[0] != path[0]:
-            path.extend(found_path)
-
-        path.append(goal)
+        dummy_cost_fn = lambda x, y: None
+        path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn)
+        path = finalize_path(path, source, goal)
         return path  # if no path exists, return None
 
 
@@ -169,11 +178,6 @@ class DijkstrasProblem:
         self.count = 0
         self.myqueue = PriorityQueue()
 
-    def increment(self):
-        temp_count = self.count
-        self.count = self.count + 1
-        return temp_count
-
     # Links should be inserted into the heap as they are located in the page.
     # By default, the cost of going to a link is the length of a particular destination link's name. For instance,
     #  if we consider /wiki/a -> /wiki/ab, then the default cost function will have a value of 8.
@@ -181,19 +185,9 @@ class DijkstrasProblem:
     #  to get the cost of a particular edge.
     # You should return the path from source to goal that minimizes the total cost. Assume cost > 0 for all edges.
     def dijkstras(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia", costFn=lambda x, y: len(y)):
-
         self.myqueue.queue.clear()
-
-        path = [source]
-        found_path = find_path(self.internet, self.myqueue, source, goal, costFn, path)
-
-        if found_path is None:
-            return None
-
-        if found_path[0] != path[0]:
-            path.extend(found_path)
-
-        path.append(goal)
+        path = find_path(self.internet, self.myqueue, source, goal, costFn)
+        path = finalize_path(path, source, goal)
         return path  # if no path exists, return None
 
 
