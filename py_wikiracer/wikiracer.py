@@ -92,6 +92,20 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn)
 
     return None  # return None since we didn't find a path
 
+def finalize_path(path, source, goal):
+    """
+    does checks and balances to make sure path is correct (with edge cases)
+    """
+    if path is None:
+        return None
+
+    # only add goal to the path if it's different from the source
+    # TODO - find out what should be done about this
+    # if goal != source:
+    #     path.append(goal)
+    path.append(goal)
+
+    return path
 
 class Parser:
 
@@ -145,13 +159,15 @@ class BFSProblem:
     def bfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
         dummy_cost_fn = lambda x, y: 1
         path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn)
+        path = finalize_path(path, source, goal)
+        # if path is None:
+        #     return None
+        #
+        # # only add goal to the path if it's different from the source
+        # if goal != source:
+        #     path.append(goal)
 
-        if path is None:
-            return None
-
-        path.append(goal)
         return path  # if no path exists, return None
-
 
 class DFSProblem:
     def __init__(self):
@@ -162,11 +178,7 @@ class DFSProblem:
     def dfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
         dummy_cost_fn = lambda x, y: None
         path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn)
-
-        if path is None:
-            return None
-
-        path.append(goal)
+        path = finalize_path(path, source, goal)
         return path  # if no path exists, return None
 
 
@@ -186,11 +198,11 @@ class DijkstrasProblem:
         self.myqueue.queue.clear()
 
         path = find_path(self.internet, self.myqueue, source, goal, costFn)
-
-        if path is None:
-            return None
-
-        path.append(goal)
+        path = finalize_path(path, source, goal)
+        # if path is None:
+        #     return None
+        #
+        # path.append(goal)
         return path  # if no path exists, return None
 
 
