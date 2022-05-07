@@ -27,16 +27,22 @@ def exclude_links(x: str):
         return True
 
 
-def backtrack_path(source, goal, prev_parent: dict):
+def backtrack_path(source, goal, prev: dict):
+    """
+    backtrack the path using the prev pointers created during the path finding
+    """
     page = goal
     backwards_path = [goal]
     path = []
     while page != source:
-        backwards_path.append(prev_parent[page])
-        page = prev_parent[page]
+        backwards_path.append(prev[page])
+        page = prev[page]
 
-    for i in range(len(backwards_path)):
-        path.append(backwards_path[-i - 1])
+    # pop from the stack until it's emptied, reversing the backwards path list to get the forward path
+    while len(backwards_path) > 0:
+        path_item = backwards_path.pop()
+        path.append(path_item)
+
     return path
 
 
