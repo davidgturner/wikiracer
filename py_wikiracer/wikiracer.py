@@ -94,15 +94,12 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn)
 
 def finalize_path(path, source, goal):
     """
-    does checks and balances to make sure path is correct (with edge cases)
+    does checks and balances to make sure path is correct (with edge cases) adding the goal page node, etc.
     """
     if path is None:
         return None
 
-    # only add goal to the path if it's different from the source
-    # TODO - find out what should be done about this
-    # if goal != source:
-    #     path.append(goal)
+    # add the goal page node
     path.append(goal)
 
     return path
@@ -147,7 +144,7 @@ class BFSProblem:
         self.myqueue = Queue()  # use a simple FIFO queue here
 
     # Example in/outputs:
-    #  bfs(source = "/wiki/Computer_science", goal = "/wiki/Computer_science") == ["/wiki/Computer_science"]
+    #  bfs(source = "/wiki/Computer_science", goal = "/wiki/Computer_science") == ["/wiki/Computer_science", "/wiki/Computer_science"]
     #  bfs(source = "/wiki/Computer_science", goal = "/wiki/Computation") == ["/wiki/Computer_science", "/wiki/Computation"]
     # Find more in the test case file.
 
@@ -160,13 +157,6 @@ class BFSProblem:
         dummy_cost_fn = lambda x, y: 1
         path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn)
         path = finalize_path(path, source, goal)
-        # if path is None:
-        #     return None
-        #
-        # # only add goal to the path if it's different from the source
-        # if goal != source:
-        #     path.append(goal)
-
         return path  # if no path exists, return None
 
 class DFSProblem:
@@ -196,13 +186,8 @@ class DijkstrasProblem:
     # You should return the path from source to goal that minimizes the total cost. Assume cost > 0 for all edges.
     def dijkstras(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia", costFn=lambda x, y: len(y)):
         self.myqueue.queue.clear()
-
         path = find_path(self.internet, self.myqueue, source, goal, costFn)
         path = finalize_path(path, source, goal)
-        # if path is None:
-        #     return None
-        #
-        # path.append(goal)
         return path  # if no path exists, return None
 
 
