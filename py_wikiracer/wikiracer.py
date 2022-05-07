@@ -1,5 +1,5 @@
 from collections import defaultdict
-from queue import LifoQueue, Queue, PriorityQueue
+from queue import LifoQueue, Queue, PriorityQueue, SimpleQueue
 
 from py_wikiracer.internet import Internet
 from typing import List
@@ -26,6 +26,19 @@ def exclude_links(x: str):
     else:
         return True
 
+
+def backpedal(source, target, prev_parent: dict):
+    page = target
+    back_path = [target]
+    path = []
+    while page != source:
+        back_path.append(prev_parent[page])
+        page = prev_parent[page]
+
+    for i in range(len(back_path)):
+        path.append(back_path[-i - 1])
+    return path
+
 def backtrack_path(page_graph: defaultdict, prev_parent: dict, page):
     current_ptr = page
     path_backwards = [current_ptr]
@@ -45,7 +58,7 @@ def backtrack_path(page_graph: defaultdict, prev_parent: dict, page):
     return backwards_path_reversed
 
 
-def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn, path: []):
+def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn):
     queue_input.queue.clear()
 
     queue_input.put((0, source))
@@ -53,6 +66,7 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn,
 
     page_graph = defaultdict(list)
     prev_parent = {source: None}
+    dist = {source: 0}
 
     while not queue_input.empty():
         cost, page = queue_input.get()
@@ -60,17 +74,34 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn,
             explored.add(page)
             for neighbor in Parser.get_links_in_page(internet_obj.get_page(page)):
                 if neighbor == goal:
-                    path = backtrack_path(page_graph, prev_parent, page)
-                    return path
+                    # path = backtrack_path(page_graph, prev_parent, page)
+                    p = backpedal(source, page, prev_parent)
+                    return p
 
-                # keep track of the cost in the page graph
-                page_graph[neighbor].append((cost + cost_fn(page, neighbor), page))
+                if cost_fn(page, neighbor) is None:
+                    queue_input.put((None, neighbor))
 
-                # never reset the source node
-                if neighbor != source:
-                    prev_parent[neighbor] = page
+                    if neighbor not in (source, page) and neighbor not in explored:
+                        prev_parent[neighbor] = page
+                else:
+                    alt_cost = cost + cost_fn(page, neighbor)
+                    cost_neighbor_tuple = (alt_cost, neighbor)
+                    queue_input.put(cost_neighbor_tuple)
 
-                queue_input.put((cost + cost_fn(page, neighbor), neighbor))
+                    # keep track of the cost in the page graph
+                    # this page graph isn't need for function, but could be good for debugging / troubleshooting
+                    page_graph[neighbor].append((cost + cost_fn(page, neighbor), page))
+
+                    # never reset the source node and also never add a previous pointer back to itself
+                    if neighbor not in dist:
+                        if neighbor not in (source, page) and neighbor not in explored:
+                            dist[neighbor] = alt_cost
+                            prev_parent[neighbor] = page
+                    else:
+                        if alt_cost <= dist[neighbor]:
+                            if neighbor not in (source, page) and neighbor not in explored:
+                                dist[neighbor] = alt_cost
+                                prev_parent[neighbor] = page
 
     return None  # return None since we didn't find a path
 
@@ -125,16 +156,20 @@ class BFSProblem:
     #  This applies for bfs, dfs, and dijkstra's.
     # Download a page with self.internet.get_page().
     def bfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
-        path = [source]
+        # path = [source]
 
         dummy_cost_fn = lambda x, y: 1
-        found_path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn, path)
+        path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn)
 
-        if found_path is None:
+        print("found path = ", path)
+        if path is None:
             return None
 
-        if found_path[0] != path[0]:
-            path.extend(found_path)
+        # if found_path is None:
+        #     return None
+        #
+        # if found_path[0] != path[0]:
+        #     path.extend(found_path)
 
         path.append(goal)
         return path  # if no path exists, return None
@@ -148,16 +183,20 @@ class DFSProblem:
     # Links should be inserted into a stack as they are located in the page. Do not add things to the visited list until they are taken out of the stack.
     def dfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
 
-        path = [source]
+        # path = [source]
 
-        dummy_cost_fn = lambda x, y: 1
-        found_path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn, path)
+        dummy_cost_fn = lambda x, y: None
+        path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn)
 
-        if found_path is None:
+        print("found path = ", path)
+        if path is None:
             return None
 
-        if found_path is not None and found_path[0] != path[0]:
-            path.extend(found_path)
+        # if found_path is None:
+        #     return None
+        #
+        # if found_path is not None and found_path[0] != path[0]:
+        #     path.extend(found_path)
 
         path.append(goal)
         return path  # if no path exists, return None
@@ -184,14 +223,18 @@ class DijkstrasProblem:
 
         self.myqueue.queue.clear()
 
-        path = [source]
-        found_path = find_path(self.internet, self.myqueue, source, goal, costFn, path)
+        # path = [source]
+        path = find_path(self.internet, self.myqueue, source, goal, costFn)
 
-        if found_path is None:
+        print("found path = ", path)
+        if path is None:
             return None
 
-        if found_path[0] != path[0]:
-            path.extend(found_path)
+        # if found_path[0] != path[0]:
+        #     print("exnteding path")
+        #path.extend(found_path)
+        # else:
+        #     print("not extending path")
 
         path.append(goal)
         return path  # if no path exists, return None
