@@ -1,4 +1,6 @@
 from collections import defaultdict
+from difflib import SequenceMatcher
+from math import ceil
 from queue import Queue, LifoQueue, PriorityQueue
 
 from py_wikiracer.internet import Internet
@@ -79,6 +81,7 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn)
                     cost_neighbor_tuple = (alt_cost, neighbor)
                     queue_input.put(cost_neighbor_tuple)
 
+                    # updating costs and previous page pointers
                     # never reset the source node and also never add a previous pointer back to itself
                     if neighbor not in page_distance_cost:
                         if neighbor not in (source, page) and neighbor not in explored:
@@ -194,6 +197,11 @@ class DijkstrasProblem:
 class WikiracerProblem:
     def __init__(self):
         self.internet = Internet()
+        self.myqueue = PriorityQueue()
+        self.num_path_steps = 0
+        self.ignore_pages = set() # self.build_ignore_pages_set()
+        self.ignore_pages.add("/wiki/Main_Page")
+        self.goal_page_neighbor_links = None
 
     # Time for you to have fun! Using what you know, try to efficiently find the shortest path between two wikipedia pages.
     # Your only goal here is to minimize the total amount of pages downloaded from the Internet, as that is the dominating time-consuming action.
@@ -205,11 +213,73 @@ class WikiracerProblem:
     # You may find Internet.get_random() useful, or you may not.
 
     def wikiracer(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
-        path = [source]
-        # YOUR CODE HERE
-        # ...
-        path.append(goal)
+        # path = [source]
+        self.myqueue.queue.clear()
+
+        self.populate_goal_links(goal)
+
+        h_score_function = lambda x, y: self.h_score(x, y, source, goal)
+
+        path = find_path(self.internet, self.myqueue, source, goal, h_score_function)
+        path = finalize_path(path, source, goal)
+
         return path  # if no path exists, return None
+
+    def build_ignore_pages_set(self):
+        common_page_ignore_power_set = set()
+        RANDOM_PAGES_TO_INSPECT = 5
+        for i in range(0, RANDOM_PAGES_TO_INSPECT):
+            rand_page = self.internet.get_random()
+            page_links_list = Parser.get_links_in_page(rand_page)
+            page_links_set = set(page_links_list)
+            if len(common_page_ignore_power_set) == 0:  # first time around we set it to the first page links set
+                common_page_ignore_power_set = page_links_set
+            else:
+                common_page_ignore_power_set = common_page_ignore_power_set.intersection(page_links_set)
+        self.ignore_pages = common_page_ignore_power_set
+
+    def populate_goal_links(self, goal):
+        goal_page_html = self.internet.get_page(goal)
+        self.goal_page_neighbor_links = Parser.get_links_in_page(goal_page_html)
+
+    def h_score(self, current_page, neighbor, source, goal):
+        if neighbor in self.ignore_pages or neighbor in self.ignore_pages:
+            random_ignore_pages = 1.0
+            return 100000   # return a really high score so it's pushed to end of the queue
+        else:
+            random_ignore_pages = 0.0
+
+        # is a 1-2 step away goal page neighbors? - give it 25% weight
+        if self.goal_page_neighbor_links and neighbor in self.goal_page_neighbor_links:
+            goal_neighbor_score = 0.99
+        else:
+            goal_neighbor_score = 0.0
+
+        # sequence matcher - give it 50% weight
+        seq = SequenceMatcher(a=neighbor, b=goal)
+        seq_matcher_score = seq.ratio()
+        # jaccard_similarity = self.jaccard(neighbor, goal)
+        link_string_similarity = seq_matcher_score # (seq_matcher_score + jaccard_similarity) / 2.0
+
+        if random_ignore_pages == 1.0:
+            similarity_score = 1.0
+        else:
+            similarity_score = (goal_neighbor_score * 0.50) + (link_string_similarity * 0.50)
+
+        # convert the sim score to a cost / distance
+        # this is because the more similar something is we want that first off the queue so need to reverse it
+        overall_score = 1.0 - similarity_score
+        return 100.00 * (max(0.0, float(overall_score)))  # use max to make sure it always stays above zero
+
+    def jaccard(self, page1, page2):
+        """
+        computes a jaccard similarity on the characters of the two page strings
+        """
+        list_source_page_chars = list(page1) # list of source page characters
+        list_current_page_chars = list(page2)  # list of current page characters
+        intersection = len(list(set(list_source_page_chars).intersection(list_current_page_chars)))
+        union = (len(list_source_page_chars) + len(list_current_page_chars)) - intersection
+        return float(intersection) / union
 
 
 # KARMA
