@@ -64,7 +64,6 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn)
 
     while not queue_input.empty():
         cost, page = queue_input.get()
-        # print("cost ", cost, " page ", page)
         if page not in explored:
             explored.add(page)
             for neighbor in Parser.get_links_in_page(internet_obj.get_page(page)):
