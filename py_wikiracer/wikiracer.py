@@ -223,12 +223,6 @@ class WikiracerProblem:
         path = find_path(self.internet, self.myqueue, source, goal, h_score_function)
         path = finalize_path(path, source, goal)
 
-        # print("Path = ", path)
-        # print("Path Length = ", len(path))
-        #
-        # print("Page Downloads = ", self.internet.requests)
-        # print("# of Page Downloads / Lengths = ", len(self.internet.requests))
-
         return path  # if no path exists, return None
 
     def build_ignore_pages_set(self):
