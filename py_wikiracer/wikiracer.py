@@ -141,7 +141,7 @@ class Parser:
 class BFSProblem:
     def __init__(self):
         self.internet = Internet()
-        self.myqueue = Queue()  # use a simple FIFO queue here
+        self.myqueue = Queue()  # use a simple FIFO queue for BFS
 
     # Example in/outputs:
     #  bfs(source = "/wiki/Computer_science", goal = "/wiki/Computer_science") == ["/wiki/Computer_science", "/wiki/Computer_science"]
@@ -163,7 +163,7 @@ class BFSProblem:
 class DFSProblem:
     def __init__(self):
         self.internet = Internet()
-        self.myqueue = LifoQueue()
+        self.myqueue = LifoQueue()  # use a stack for DFS
 
     # Links should be inserted into a stack as they are located in the page. Do not add things to the visited list until they are taken out of the stack.
     def dfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
@@ -177,7 +177,7 @@ class DijkstrasProblem:
     def __init__(self):
         self.internet = Internet()
         self.count = 0
-        self.myqueue = PriorityQueue()
+        self.myqueue = PriorityQueue()  # use priority queue for Dijkstra
 
     # Links should be inserted into the heap as they are located in the page.
     # By default, the cost of going to a link is the length of a particular destination link's name. For instance,
@@ -220,7 +220,7 @@ class WikiracerProblem:
         """
         self.myqueue.queue.clear()
 
-        self.build_ignore_pages_set(5)
+        self.build_ignore_pages_set(5)  # look at 5 random Wikipedia pages and put into an intersection set.
         self.populate_goal_links(goal)
 
         h_score_function = lambda x, y: self.h_score(x, y, source, goal)
@@ -242,6 +242,9 @@ class WikiracerProblem:
         self.ignore_pages = common_page_ignore_power_set
 
     def populate_goal_links(self, goal):
+        """
+        gets all the links for the goal page and populates into goal_page_neighbor_links
+        """
         goal_page_html = self.internet.get_page(goal)
         self.goal_page_neighbor_links = Parser.get_links_in_page(goal_page_html)
 

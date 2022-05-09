@@ -23,11 +23,11 @@ class WikiracerTests(unittest.TestCase):
 
     def test_race_hops(self):
         wr_problem = WikiracerProblem()
-        self.check_wiki_race(wr_problem, 'Johnny_Damon', 'Brazil', 80)
-        self.check_wiki_race(wr_problem, 'Chicago_Blackhawks', 'United_Nations', 80)
-        # self.check_wiki_race(wr_problem, 'Madonna', 'Altoids', 80)
-        self.check_wiki_race(wr_problem, 'Mao_Zedong', 'Brazil', 80)
-        self.check_wiki_race(wr_problem, 'Jesus', 'Brazil', 80)
+        # self.check_wiki_race(wr_problem, 'Johnny_Damon', 'Brazil', 80)
+        # self.check_wiki_race(wr_problem, 'Chicago_Blackhawks', 'United_Nations', 80)
+        self.check_wiki_race(wr_problem, 'Madonna', 'Altoids', 80)
+        # self.check_wiki_race(wr_problem, 'Mao_Zedong', 'Brazil', 80)
+        # self.check_wiki_race(wr_problem, 'Jesus', 'Brazil', 80)
 
 
 if __name__ == '__main__':
