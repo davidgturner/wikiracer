@@ -17,7 +17,8 @@ def process_race(src, goal):
     return wr_path, num_downloads
 
 tests = [
-    ("/wiki/Willard_Boyle", "/wiki/Light-dragging_effects"),
+    #("Willard_Boyle", "Light-dragging_effects"),
+    ("Computer_science", "Richard_Soley"),
 ]
 
 for t in tests:

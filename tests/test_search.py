@@ -113,7 +113,6 @@ def test_dfs_complex():
     assert dfs.dfs(source = "/wiki/Calvin_Li", goal = "/wiki/Quebecor") == ['/wiki/Calvin_Li', '/wiki/Main_Page', '/wiki/Wikimedia_Foundation', '/wiki/VIAF_(identifier)', '/wiki/Virtual_International_Authority_File', '/wiki/Interested_Parties_Information', '/wiki/Law', '/wiki/Human_science', '/wiki/Truth', '/wiki/Verstehen', '/wiki/Phronesis', '/wiki/Knowledge', '/wiki/Max_Weber', '/wiki/Trove_(identifier)', '/wiki/Trove', '/wiki/The_Sydney_Morning_Herald', '/wiki/OzTAM', '/wiki/Canwest', '/wiki/Pembroke_Daily_Observer', '/wiki/Postmedia_News', '/wiki/Postmedia_Network', '/wiki/Dose_(magazine)', '/wiki/Northern_News', '/wiki/Jam!', '/wiki/Quebecor']
     assert dfs.internet.requests == ['/wiki/Calvin_Li', '/wiki/Main_Page', '/wiki/Wikimedia_Foundation', '/wiki/VIAF_(identifier)', '/wiki/Virtual_International_Authority_File', '/wiki/Interested_Parties_Information', '/wiki/Law', '/wiki/Human_science', '/wiki/Truth', '/wiki/Verstehen', '/wiki/Phronesis', '/wiki/Knowledge', '/wiki/Max_Weber', '/wiki/Trove_(identifier)', '/wiki/Trove', '/wiki/The_Sydney_Morning_Herald', '/wiki/OzTAM', '/wiki/Canwest', '/wiki/Pembroke_Daily_Observer', '/wiki/Postmedia_News', '/wiki/Postmedia_Network', '/wiki/Dose_(magazine)', '/wiki/Northern_News', '/wiki/Jam!']
 
-# @unittest.skip('skipped test')
 def test_wikiracer_1():
     """
     Tests wikiracer speed on one input.
@@ -132,7 +131,6 @@ def test_wikiracer_1():
     assert len(racer.internet.requests) <= limit
 
 
-# @unittest.skip('skipped test')
 def test_wikiracer_2():
     """
     Tests wikiracer speed on one input.

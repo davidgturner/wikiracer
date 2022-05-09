@@ -1,12 +1,10 @@
 from collections import defaultdict
 from difflib import SequenceMatcher
-from math import ceil, sqrt, log
 from queue import Queue, LifoQueue, PriorityQueue
 
 from py_wikiracer.internet import Internet
 from typing import List
 import re
-import random
 
 
 def invalid_url_pattern(test_str: str, disallowed_chars_array: []):
@@ -95,17 +93,16 @@ def find_path(internet_obj: Internet, queue_input: Queue, source, goal, cost_fn)
 
     return None  # return None since we didn't find a path
 
-def finalize_path(path, source, goal):
+
+def finalize_path(path, goal):
     """
     does checks and balances to make sure path is correct (with edge cases) adding the goal page node, etc.
     """
     if path is None:
         return None
-
-    # add the goal page node
-    path.append(goal)
-
+    path.append(goal)  # add the goal page node
     return path
+
 
 class Parser:
 
@@ -134,26 +131,6 @@ class Parser:
                     links.append(link)
         return links
 
-    @staticmethod
-    def get_related_category_links(html: str) -> List[str]:
-        """
-        In this method, we should parse a page's HTML and return a list of category links in the page.
-        Be sure not to return any link with a DISALLOWED character.
-        All links should be of the form "/wiki/Category:<category page name>", as to not follow external links
-        """
-        DISALLOWED_TEXT_STRINGS = [ "Articles_containing_", "Articles_with", "Articles", "articles",
-                                    "Pages_using_", "Short_description", "short_description",
-                                    "Official_website_not_in_Wikidata", "Webarchive_template_wayback_links",
-                                    "Webarchive", "wayback", "description", "Wikidata", "website"]
-        links = []
-        all_links: [] = re.findall(r'(?<=<a href=")[^"]*', html)
-        for link in all_links:
-            if len(set(link.replace("/wiki/Category:", "").split("_")).intersection(set(DISALLOWED_TEXT_STRINGS))) >= 1:
-                continue
-            if link.startswith("/wiki/Category:") and link not in links:
-                links.append(link)
-        return links
-
 
 # In these methods, we are given a source page and a goal page, and we should return
 #  the shortest path between the two pages. Be careful! Wikipedia is very large.
@@ -164,7 +141,7 @@ class Parser:
 class BFSProblem:
     def __init__(self):
         self.internet = Internet()
-        self.myqueue = Queue()  # use a simple FIFO queue here
+        self.myqueue = Queue()  # use a simple FIFO queue for BFS
 
     # Example in/outputs:
     #  bfs(source = "/wiki/Computer_science", goal = "/wiki/Computer_science") == ["/wiki/Computer_science", "/wiki/Computer_science"]
@@ -179,19 +156,20 @@ class BFSProblem:
     def bfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
         dummy_cost_fn = lambda x, y: 1
         path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn)
-        path = finalize_path(path, source, goal)
+        path = finalize_path(path, goal)
         return path  # if no path exists, return None
+
 
 class DFSProblem:
     def __init__(self):
         self.internet = Internet()
-        self.myqueue = LifoQueue()
+        self.myqueue = LifoQueue()  # use a stack for DFS
 
     # Links should be inserted into a stack as they are located in the page. Do not add things to the visited list until they are taken out of the stack.
     def dfs(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
         dummy_cost_fn = lambda x, y: None
         path = find_path(self.internet, self.myqueue, source, goal, dummy_cost_fn)
-        path = finalize_path(path, source, goal)
+        path = finalize_path(path, goal)
         return path  # if no path exists, return None
 
 
@@ -199,7 +177,7 @@ class DijkstrasProblem:
     def __init__(self):
         self.internet = Internet()
         self.count = 0
-        self.myqueue = PriorityQueue()
+        self.myqueue = PriorityQueue()  # use priority queue for Dijkstra
 
     # Links should be inserted into the heap as they are located in the page.
     # By default, the cost of going to a link is the length of a particular destination link's name. For instance,
@@ -210,7 +188,7 @@ class DijkstrasProblem:
     def dijkstras(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia", costFn=lambda x, y: len(y)):
         self.myqueue.queue.clear()
         path = find_path(self.internet, self.myqueue, source, goal, costFn)
-        path = finalize_path(path, source, goal)
+        path = finalize_path(path, goal)
         return path  # if no path exists, return None
 
 
@@ -234,15 +212,21 @@ class WikiracerProblem:
     # You may find Internet.get_random() useful, or you may not.
 
     def wikiracer(self, source="/wiki/Calvin_Li", goal="/wiki/Wikipedia"):
-        # path = [source]
+        """
+        searchs for the goal with the following approaches in the h score function passed to find_path
+        - gives pages that are common pages a very high cost
+        - calculates text similarity between the neighbor and the goal page
+        - if a neighbor is a goal link it give it lower cost
+        """
         self.myqueue.queue.clear()
 
-        self.build_ignore_pages_set(5)
+        self.build_ignore_pages_set(5)  # look at 5 random Wikipedia pages and put into an intersection set.
         self.populate_goal_links(goal)
-        # self.populate_goal_categories(goal)
+
         h_score_function = lambda x, y: self.h_score(x, y, source, goal)
+
         path = find_path(self.internet, self.myqueue, source, goal, h_score_function)
-        path = finalize_path(path, source, goal)
+        path = finalize_path(path, goal)
         return path  # if no path exists, return None
 
     def build_ignore_pages_set(self, num_inspection_pages=5):
@@ -258,56 +242,52 @@ class WikiracerProblem:
         self.ignore_pages = common_page_ignore_power_set
 
     def populate_goal_links(self, goal):
+        """
+        gets all the links for the goal page and populates into goal_page_neighbor_links
+        """
         goal_page_html = self.internet.get_page(goal)
         self.goal_page_neighbor_links = Parser.get_links_in_page(goal_page_html)
 
     def h_score(self, current_page, neighbor, source, goal):
-        scaler = 100.00
 
         if neighbor in self.ignore_pages:
-            random_ignore_pages = 1.0
-            return 100000   # return a really high score so it's pushed to end of the queue
-        else:
-            random_ignore_pages = 0.0
+            return 100000  # return a really high score so it's pushed to end of the queue
 
-        # is a 1-2 step away goal page neighbors? - give it 25% weight
+        # is a 1-2 step away goal page neighbors?
         if neighbor in self.goal_page_neighbor_links:
             goal_neighbor_score = 0.99
-            # return 1.0
         else:
             goal_neighbor_score = 0.0
 
-        # sequence matcher - give it 50% weight
-        seq = SequenceMatcher(a=neighbor, b=goal)
-        seq_matcher_score = seq.ratio()
-        jaccard_similarity = self.jaccard(neighbor, goal)
-        overlap_similarity = self.overlap_similarity(neighbor, goal)
-        link_string_similarity = (0.45 * seq_matcher_score + 0.10 * jaccard_similarity + 0.45 * overlap_similarity)
+        # sequence matcher to get text similarity
+        link_string_similarity = self.calc_page_link_text_similarity(goal, neighbor)
 
-        # to get the category score between the neighbor and the goal
-        # get_related_category_links
-        #neighbor_categories = Parser.get_related_category_links(neighbor)
-        #if neighbor in self.goal_page_category_links:
-        # if random_ignore_pages == 1.0:
-        #     overall_similarity_score = 1.0
-        # else:
         overall_similarity_score = (link_string_similarity * 0.75) + (goal_neighbor_score * 0.25)
 
         # convert the sim score to a cost / distance
         # this is because the more similar something is we want that first off the queue so need to reverse it
-        overall_cost_distance = self.distance_cost(overall_similarity_score) #  1.0 - similarity_score
+        overall_cost_distance = self.distance_cost(overall_similarity_score)
 
         return max(0.0, float(overall_cost_distance))  # use max to make sure it always stays above zero
 
+    def calc_page_link_text_similarity(self, goal, neighbor):
+        """
+        calculates the overall text similarity
+        """
+        neighbor_lower = neighbor.lower()
+        goal_lower = goal.lower()
+        seq = SequenceMatcher(a=neighbor_lower, b=goal_lower)
+        seq_matcher_score = seq.ratio()
+        overlap_similarity = self.overlap_similarity(neighbor_lower, goal_lower)
+        link_string_similarity = ((0.50 * seq_matcher_score) + (0.50 * overlap_similarity))
+        return link_string_similarity
+
     def distance_cost(self, similarity_score):
+        """
+        computes a distance based on the similarity score
+        """
         scaler = 100.0
-        # 4 different ways of converting similarity to cost distance averaged out
         cost_dist_1 = 1 - similarity_score
-        # cost_dist_2 = sqrt(1 - similarity_score) * scaler
-        # cost_dist_3 = -log(similarity_score)
-        # cost_dist_4 = (1 / similarity_score) - 1
-        # cost_distance_method_count = 4
-        # return scaler * ((cost_dist_1 + cost_dist_2 + cost_dist_3 + cost_dist_4) / cost_distance_method_count)
         return scaler * cost_dist_1
 
     def overlap_similarity(self, str1, str2):
@@ -315,40 +295,23 @@ class WikiracerProblem:
         is this overlap similarity the same as the official overlap coefficient
         """
         overlap_count = self.string_overlap_count(str1, str2)
-
         str1 = str1.replace("/wiki/", "")
         str2 = str2.replace("/wiki/", "")
-
         tokens_str1_set: set = set(str1.split("_"))
         tokens_str2_set: set = set(str2.split("_"))
-
         total_token_count = len(tokens_str1_set) + len(tokens_str2_set)
-
         return overlap_count / total_token_count
 
     def string_overlap_count(self, str1, str2):
+        """
+        count the number of string overlaps
+        """
         str1 = str1.replace("/wiki/", "")
         str2 = str2.replace("/wiki/", "")
-
         tokens_str1_set: set = set(str1.split("_"))
         tokens_str2_set: set = set(str2.split("_"))
-
         intersection_set = tokens_str1_set.intersection(tokens_str2_set)
         return len(intersection_set)
-
-    def jaccard(self, page1, page2):
-        """
-        computes a jaccard similarity on the characters of the two page strings
-        """
-        list_source_page_chars = list(page1) # list of source page characters
-        list_current_page_chars = list(page2)  # list of current page characters
-        intersection = len(list(set(list_source_page_chars).intersection(list_current_page_chars)))
-        union = (len(list_source_page_chars) + len(list_current_page_chars)) - intersection
-        return float(intersection) / union
-
-    def populate_goal_categories(self, goal):
-        goal_page_html = self.internet.get_page(goal)
-        self.goal_page_category_links = Parser.get_related_category_links(goal_page_html)
 
 
 # KARMA
